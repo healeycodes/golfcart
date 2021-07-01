@@ -5,25 +5,21 @@ import (
 
 	"github.com/alecthomas/kong"
 	"github.com/alecthomas/participle/v2"
+	"github.com/alecthomas/participle/v2/lexer"
 	"github.com/alecthomas/repr"
 )
 
 type Program struct {
-	Expression []*Expression `@@*`
+	Expression  []*Expression  `( @@`
+	Declaration []*Declaration `  | @@ )`
 }
 
-// type Declaration struct {
-// 	Pos lexer.Position
+type Declaration struct {
+	Pos lexer.Position
 
-// 	Type string `@Type`
-// 	Name string `@Ident`
-// }
-
-// type FunctionBody struct {
-// 	Pos lexer.Position
-
-// 	Expression []*Expression `@@*`
-// }
+	Variable string      `@Ident`
+	Value    *Expression `"=" @@`
+}
 
 type Expression struct {
 	Equality *Equality `@@`
