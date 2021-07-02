@@ -10,7 +10,8 @@ import (
 )
 
 type ExpressionList struct {
-	Pos lexer.Position
+	Pos    lexer.Position
+	EndPos lexer.Position
 
 	Expression []*Expression `@@*`
 }
@@ -19,20 +20,47 @@ type Expression struct {
 	Pos    lexer.Position
 	EndPos lexer.Position
 
-	For        *For        `@@`
+	Break      *Break      `  @@`
+	Continue   *Continue   `| @@`
+	For        *For        `| @@`
+	If         *If         `| @@`
 	Assignment *Assignment `| @@`
 	Function   *Function   `| @@`
 	Binary     *Binary     `| @@`
+}
+
+type Break struct {
+	Pos    lexer.Position
+	EndPos lexer.Position
+
+	Break string `"break"`
+}
+
+type Continue struct {
+	Pos    lexer.Position
+	EndPos lexer.Position
+
+	Continue string `"continue"`
 }
 
 type For struct {
 	Pos    lexer.Position
 	EndPos lexer.Position
 
-	// for i = 0; i < 10; i += 1 {}
-	// for i = 0; i < 10 {}
-	// for true {}
-	Expression []*Expression `"for" ( (@@ ";" @@ ";" @@) | (@@ ";" @@) | (@@) ) "{" @@* "}"`
+	Init      []*Assignment     `"for" ( @@* ("," @@ )* )* ";"`
+	Condition *Expression       `@@ ";"`
+	Post      *Expression       `@@`
+	Body      []*ExpressionList `"{" @@* "}"`
+}
+
+type If struct {
+	Pos    lexer.Position
+	EndPos lexer.Position
+
+	Init      []*Assignment     `"if" ( @@ ("," @@ )* ";" )?`
+	Condition *Expression       `@@ "{"`
+	IfBody    []*ExpressionList `@@* "}"`
+	ElseBody  []*ExpressionList `( "else" "{" @@* "}" )?`
 }
 
 type Assignment struct {
@@ -76,7 +104,7 @@ type Primary struct {
 	Pos    lexer.Position
 	EndPos lexer.Position
 
-	Ident         string      `@Ident`
+	Ident         string      `  @Ident`
 	Number        *float64    `| @Float | @Int`
 	String        *string     `| @String`
 	Bool          *bool       `| ( @"true" | "false" )`
@@ -88,7 +116,7 @@ type Function struct {
 	Pos    lexer.Position
 	EndPos lexer.Position
 
-	Parameters []*string     `( ( "(" (@Ident ("," @Ident)*) ")" | @Ident ) "=" ">" )`
+	Parameters []*string     `( ( "(" ")" | "(" (@Ident ("," @Ident)*) ")" | @Ident ) "=" ">" )`
 	Expression []*Expression `( "{" @@* "}" | @@ )`
 }
 
