@@ -47,20 +47,20 @@ type For struct {
 	Pos    lexer.Position
 	EndPos lexer.Position
 
-	Init      []*Assignment     `"for" ( @@* ("," @@ )* )* ";"`
-	Condition *Expression       `@@ ";"`
-	Post      *Expression       `@@`
-	Body      []*ExpressionList `"{" @@* "}"`
+	Init      []*Assignment `"for" ( @@* ("," @@ )* )* ";"`
+	Condition *Expression   `@@ ";"`
+	Post      *Expression   `@@`
+	Body      []*Expression `"{" @@* "}"`
 }
 
 type If struct {
 	Pos    lexer.Position
 	EndPos lexer.Position
 
-	Init      []*Assignment     `"if" ( @@ ("," @@ )* ";" )?`
-	Condition *Expression       `@@ "{"`
-	IfBody    []*ExpressionList `@@* "}"`
-	ElseBody  []*ExpressionList `( "else" "{" @@* "}" )?`
+	Init      []*Assignment `"if" ( @@ ("," @@ )* ";" )?`
+	Condition *Expression   `@@`
+	Body      []*Expression `"{" @@* "}"`
+	ElseBody  []*Expression `( "else" "{" @@* "}" )?`
 }
 
 type Assignment struct {
