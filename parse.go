@@ -10,13 +10,22 @@ import (
 )
 
 type ExpressionList struct {
+	Pos lexer.Position
+
 	Expression []*Expression `@@*`
 }
 
 type Expression struct {
-	Assignment *Assignment ` @@`
+	Pos lexer.Position
+
+	For        *For        `@@`
+	Assignment *Assignment `| @@`
 	Function   *Function   `| @@`
 	Binary     *Binary     `| @@`
+}
+
+type For struct {
+	Assignment []*Assignment `"for" @@* ";"`
 }
 
 type Assignment struct {
