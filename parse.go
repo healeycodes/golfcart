@@ -16,7 +16,8 @@ type ExpressionList struct {
 }
 
 type Expression struct {
-	Pos lexer.Position
+	Pos    lexer.Position
+	EndPos lexer.Position
 
 	For        *For        `@@`
 	Assignment *Assignment `| @@`
@@ -25,11 +26,18 @@ type Expression struct {
 }
 
 type For struct {
-	Assignment []*Assignment `"for" @@* ";"`
+	Pos    lexer.Position
+	EndPos lexer.Position
+
+	// for i = 0; i < 10; i += 1 {}
+	// for i = 0; i < 10 {}
+	// for true {}
+	Expression []*Expression `"for" ( (@@ ";" @@ ";" @@) | (@@ ";" @@) | (@@) ) "{" @@* "}"`
 }
 
 type Assignment struct {
-	Pos lexer.Position
+	Pos    lexer.Position
+	EndPos lexer.Position
 
 	Variable   string      `@Ident`
 	Op         string      `"="`
@@ -37,18 +45,27 @@ type Assignment struct {
 }
 
 type Binary struct {
+	Pos    lexer.Position
+	EndPos lexer.Position
+
 	Arithmetic *Arithmetic `@@`
 	Op         string      `[ @( "!" "=" | "=" "=" | ">" | ">" "=" | "<" | "<" "=" | "or" | "and" )`
 	Next       *Binary     `  @@ ]`
 }
 
 type Arithmetic struct {
+	Pos    lexer.Position
+	EndPos lexer.Position
+
 	Unary *Unary      `@@`
-	Op    string      `[ @( "-" | "+" | "/" | "*" | "^" | "%" | "&" | "|")`
+	Op    string      `[ @( "-" "="* | "+" "="* | "/" "="* | "*" "="* | "^" | "%" | "&" | "|" )`
 	Next  *Arithmetic `  @@ ]`
 }
 
 type Unary struct {
+	Pos    lexer.Position
+	EndPos lexer.Position
+
 	Op       string    `  ( @( "!" | "-" )`
 	Unary    *Unary    `    @@ )`
 	Primary  *Primary  `| @@`
@@ -56,6 +73,9 @@ type Unary struct {
 }
 
 type Primary struct {
+	Pos    lexer.Position
+	EndPos lexer.Position
+
 	Ident         string      `@Ident`
 	Number        *float64    `| @Float | @Int`
 	String        *string     `| @String`
@@ -65,6 +85,9 @@ type Primary struct {
 }
 
 type Function struct {
+	Pos    lexer.Position
+	EndPos lexer.Position
+
 	Parameters []*string     `( ( "(" (@Ident ("," @Ident)*) ")" | @Ident ) "=" ">" )`
 	Expression []*Expression `( "{" @@* "}" | @@ )`
 }
