@@ -9,71 +9,69 @@ import (
 	"github.com/alecthomas/repr"
 )
 
-type Program struct {
-	Expression  []*Expression  `( @@`
-	Declaration []*Declaration `  | @@ )`
-}
-
-type Declaration struct {
-	Pos lexer.Position
-
-	Variable string      `@Ident`
-	Value    *Expression `"=" @@`
+type ExpressionList struct {
+	Expression []*Expression `@@*`
 }
 
 type Expression struct {
-	Equality *Equality `@@`
+	Assignment *Assignment ` @@`
+	Function   *Function   `| @@`
+	Binary     *Binary     `| @@`
 }
 
-type Equality struct {
-	Comparison *Comparison `@@`
-	Op         string      `[ @( "!" "=" | "=" "=" )`
-	Next       *Equality   `  @@ ]`
+type Assignment struct {
+	Pos lexer.Position
+
+	Variable   string      `@Ident`
+	Op         string      `"="`
+	Expression *Expression `@@`
 }
 
-type Comparison struct {
-	Addition *Addition   `@@`
-	Op       string      `[ @( ">" | ">" "=" | "<" | "<" "=" )`
-	Next     *Comparison `  @@ ]`
+type Binary struct {
+	Arithmetic *Arithmetic `@@`
+	Op         string      `[ @( "!" "=" | "=" "=" | ">" | ">" "=" | "<" | "<" "=" | "or" | "and" )`
+	Next       *Binary     `  @@ ]`
 }
 
-type Addition struct {
-	Multiplication *Factor   `@@`
-	Op             string    `[ @( "-" | "+" )`
-	Next           *Addition `  @@ ]`
-}
-
-type Factor struct {
-	Unary *Unary  `@@`
-	Op    string  `[ @( "/" | "*" | "^" | "%" | "&" | "|")`
-	Next  *Factor `  @@ ]`
+type Arithmetic struct {
+	Unary *Unary      `@@`
+	Op    string      `[ @( "-" | "+" | "/" | "*" | "^" | "%" | "&" | "|")`
+	Next  *Arithmetic `  @@ ]`
 }
 
 type Unary struct {
-	Op      string   `  ( @( "!" | "-" )`
-	Unary   *Unary   `    @@ )`
-	Primary *Primary `| @@`
+	Op       string    `  ( @( "!" | "-" )`
+	Unary    *Unary    `    @@ )`
+	Primary  *Primary  `| @@`
+	Function *Function `| @@`
 }
 
 type Primary struct {
-	Number        *float64    `  @Float | @Int`
+	Ident         string      `@Ident`
+	Number        *float64    `| @Float | @Int`
 	String        *string     `| @String`
 	Bool          *bool       `| ( @"true" | "false" )`
 	Nil           bool        `| @"nil"`
 	SubExpression *Expression `| "(" @@ ")" `
 }
 
-var parser = participle.MustBuild(&Program{}, participle.UseLookahead(2))
+type Function struct {
+	Parameters []*string     `( ( "(" (@Ident ("," @Ident)*) ")" | @Ident ) "=" ">" )`
+	Expression []*Expression `( "{" @@* "}" | @@ )`
+}
+
+var parser = participle.MustBuild(&ExpressionList{}, participle.UseLookahead(2))
 
 func main() {
 	var cli struct {
-		Program []string `arg required help:"Expression to parse."`
+		ExpressionList []string `arg required help:"ExpressionList to parse."`
 	}
 	ctx := kong.Parse(&cli)
 
-	program := &Program{}
-	err := parser.ParseString("", strings.Join(cli.Program, " "), program)
+	exprList := &ExpressionList{}
+	err := parser.ParseString("", strings.Join(cli.ExpressionList, " "), exprList)
 	ctx.FatalIfErrorf(err)
 
-	repr.Println(program)
+	repr.Println(exprList)
+	// println(parser.String())
 }
