@@ -1,4 +1,4 @@
-module github.com/healeycodes/lang
+module github.com/healeycodes/golfcart
 
 go 1.13
 

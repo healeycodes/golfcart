@@ -9,7 +9,6 @@ import (
 )
 
 func main() {
-
 	var cli struct {
 		ExpressionList []string `arg required help:"ExpressionList to parse."`
 	}
