@@ -9,21 +9,21 @@ type ExpressionList struct {
 	Pos    lexer.Position
 	EndPos lexer.Position
 
-	Expression []*Expression `@@*`
+	Expressions []*Expression `@@*`
 }
 
 type Expression struct {
 	Pos    lexer.Position
 	EndPos lexer.Position
 
-	Break      *Break      `  @@`
-	Continue   *Continue   `| @@`
-	For        *For        `| @@`
-	While      *While      `| @@`
-	If         *If         `| @@`
-	Assignment *Assignment `| @@`
-	Function   *Function   `| @@`
-	Binary     *Binary     `| @@`
+	Break           *Break           `  @@`
+	Continue        *Continue        `| @@`
+	For             *For             `| @@`
+	While           *While           `| @@`
+	If              *If              `| @@`
+	Assignment      *Assignment      `| @@`
+	FunctionLiteral *FunctionLiteral `| @@`
+	Binary          *Binary          `| @@`
 }
 
 type Break struct {
@@ -99,10 +99,10 @@ type Unary struct {
 	Pos    lexer.Position
 	EndPos lexer.Position
 
-	Op       string    `( @( "!" | "-" )`
-	Unary    *Unary    `  @@ )`
-	Primary  *Primary  `| @@`
-	Function *Function `| @@`
+	Op              string           `( @( "!" | "-" )`
+	Unary           *Unary           `  @@ )`
+	Primary         *Primary         `| @@`
+	FunctionLiteral *FunctionLiteral `| @@`
 }
 
 type Primary struct {
@@ -140,12 +140,12 @@ type ObjectEntry struct {
 	Value *Expression `@@`
 }
 
-type Function struct {
+type FunctionLiteral struct {
 	Pos    lexer.Position
 	EndPos lexer.Position
 
 	Parameters []*string     `( ( "(" ")" | "(" (@Ident ("," @Ident)*) ")" | @Ident ) "=" ">" )`
-	Expression []*Expression `( "{" @@* "}" | @@ )`
+	Body       []*Expression `( "{" @@* "}" | @@ )`
 }
 
 func GenerateAST(source string) (*ExpressionList, error) {
