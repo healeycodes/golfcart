@@ -1,12 +1,8 @@
-package main
+package lang
 
 import (
-	"strings"
-
-	"github.com/alecthomas/kong"
 	"github.com/alecthomas/participle/lexer"
 	"github.com/alecthomas/participle/v2"
-	"github.com/alecthomas/repr"
 )
 
 type ExpressionList struct {
@@ -152,18 +148,16 @@ type Function struct {
 	Expression []*Expression `( "{" @@* "}" | @@ )`
 }
 
-var parser = (participle.MustBuild(&ExpressionList{}, participle.UseLookahead(2)))
+func GenerateAST(source string) (*ExpressionList, error) {
+	var parser = (participle.MustBuild(&ExpressionList{}, participle.UseLookahead(2)))
+	expressionList := &ExpressionList{}
 
-func main() {
-	var cli struct {
-		ExpressionList []string `arg required help:"ExpressionList to parse."`
+	err := parser.ParseString("", source, expressionList)
+	if err != nil {
+		return nil, err
 	}
-	ctx := kong.Parse(&cli)
+	return expressionList, nil
 
-	exprList := &ExpressionList{}
-	err := parser.ParseString("", strings.Join(cli.ExpressionList, " "), exprList)
-	ctx.FatalIfErrorf(err)
-
-	repr.Println(exprList)
+	// Print grammar
 	// println(parser.String())
 }
