@@ -1,4 +1,4 @@
-package lang
+package golfcart
 
 import (
 	"github.com/alecthomas/participle/lexer"

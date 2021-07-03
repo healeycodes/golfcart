@@ -5,7 +5,7 @@ import (
 
 	"github.com/alecthomas/kong"
 	"github.com/alecthomas/repr"
-	"github.com/healeycodes/lang/pkg/lang"
+	"github.com/healeycodes/golfcart/pkg/golfcart"
 )
 
 func main() {
@@ -14,7 +14,7 @@ func main() {
 	}
 
 	ctx := kong.Parse(&cli)
-	ast, err := lang.GenerateAST(strings.Join(cli.ExpressionList, " "))
+	ast, err := golfcart.GenerateAST(strings.Join(cli.ExpressionList, " "))
 
 	if err != nil {
 		ctx.FatalIfErrorf(err)
