@@ -4,8 +4,8 @@ import (
 	"strings"
 
 	"github.com/alecthomas/kong"
+	"github.com/alecthomas/participle/lexer"
 	"github.com/alecthomas/participle/v2"
-	"github.com/alecthomas/participle/v2/lexer"
 	"github.com/alecthomas/repr"
 )
 
@@ -23,6 +23,7 @@ type Expression struct {
 	Break      *Break      `  @@`
 	Continue   *Continue   `| @@`
 	For        *For        `| @@`
+	While      *While      `| @@`
 	If         *If         `| @@`
 	Assignment *Assignment `| @@`
 	Function   *Function   `| @@`
@@ -50,6 +51,14 @@ type For struct {
 	Init      []*Assignment `"for" ( @@* ("," @@ )* )* ";"`
 	Condition *Expression   `@@ ";"`
 	Post      *Expression   `@@`
+	Body      []*Expression `"{" @@* "}"`
+}
+
+type While struct {
+	Pos    lexer.Position
+	EndPos lexer.Position
+
+	Condition *Expression   `"while" @@`
 	Body      []*Expression `"{" @@* "}"`
 }
 
@@ -94,8 +103,8 @@ type Unary struct {
 	Pos    lexer.Position
 	EndPos lexer.Position
 
-	Op       string    `  ( @( "!" | "-" )`
-	Unary    *Unary    `    @@ )`
+	Op       string    `( @( "!" | "-" )`
+	Unary    *Unary    `  @@ )`
 	Primary  *Primary  `| @@`
 	Function *Function `| @@`
 }
@@ -104,12 +113,35 @@ type Primary struct {
 	Pos    lexer.Position
 	EndPos lexer.Position
 
-	Ident         string      `  @Ident`
-	Number        *float64    `| @Float | @Int`
-	String        *string     `| @String`
-	Bool          *bool       `| ( @"true" | "false" )`
-	Nil           bool        `| @"nil"`
-	SubExpression *Expression `| "(" @@ ")" `
+	Call          *Call          `  @@`
+	Access        *Access        `| @@`
+	Ident         string         `| @Ident`
+	Number        *float64       `| @Float | @Int`
+	String        *string        `| @String`
+	Bool          *bool          `| ( @"true" | "false" )`
+	Nil           bool           `| @"nil"`
+	SubExpression *Expression    `| "(" @@ ")" `
+	ListLiteral   *[]Expression  `| "[" ( @@ ("," @@)* ","? )? "]"`
+	ObjectLiteral *[]ObjectEntry `| "{" ( @@ ("," @@)* ","? )? "}"`
+}
+
+type Call struct {
+	Ident      string        `@Ident`
+	Parameters *[]Expression `"(" ( @@ ("," @@)* )? ")"`
+}
+
+type Access struct {
+	Ident    string     `@Ident`
+	Dot      string     `( "." @Ident`
+	Brackets Expression `| "[" @@ "]" )`
+}
+
+type ObjectEntry struct {
+	Pos    lexer.Position
+	EndPos lexer.Position
+
+	Key   *Expression `@@ ":"`
+	Value *Expression `@@`
 }
 
 type Function struct {
@@ -120,7 +152,7 @@ type Function struct {
 	Expression []*Expression `( "{" @@* "}" | @@ )`
 }
 
-var parser = participle.MustBuild(&ExpressionList{}, participle.UseLookahead(2))
+var parser = (participle.MustBuild(&ExpressionList{}, participle.UseLookahead(2)))
 
 func main() {
 	var cli struct {
