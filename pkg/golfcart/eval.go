@@ -2,16 +2,9 @@ package golfcart
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 )
-
-// TODO: to_json()?
-// out, err := json.Marshal(expr)
-// if err != nil {
-// 	panic(err)
-// }
-
-// return string(out)
 
 type StackFrame struct {
 	Values map[string]Value
@@ -20,6 +13,34 @@ type StackFrame struct {
 type Value interface {
 	String() string
 	Equals(Value) bool
+}
+
+type NumberValue struct {
+	val float64
+}
+
+func (numberValue NumberValue) String() string {
+	return fmt.Sprintf("%f", numberValue.val)
+}
+
+func (numberValue NumberValue) Equals(other Value) bool {
+	if other, ok := other.(NumberValue); ok {
+		return numberValue.val == other.val
+	}
+
+	panic("Unimplemented")
+}
+
+type BoolValue struct {
+	val bool
+}
+
+func (boolValue BoolValue) String() string {
+	return fmt.Sprintf("%t", boolValue.val)
+}
+
+func (boolValue BoolValue) Equals(other Value) bool {
+	return boolValue == other
 }
 
 func (exprList ExpressionList) String() string {
@@ -50,13 +71,23 @@ func (binary Binary) Equals(other Value) bool {
 	return binary == other
 }
 
-func (binary Binary) Eval(frame *StackFrame) (Value, error) {
+func (binary Binary) Eval() (Value, error) {
+	left, err := binary.Arithmetic.Eval()
+	if err != nil {
+		return nil, err
+	}
+
+	if binary.Next == nil {
+		return left, nil
+	}
+
+	right, err := binary.Next.Eval()
+	if err != nil {
+		return nil, err
+	}
+
 	if binary.Op == "==" {
-		result, err := binary.Arithmetic.Eval(frame).Equals(binary.Next.Eval(frame))
-		if err != nil {
-			return nil, err
-		}
-		return result
+		return BoolValue{val: left.Equals(right)}, nil
 	}
 	return nil, errors.New("Unimplemented")
 }
@@ -69,38 +100,48 @@ func (arithmetic Arithmetic) Equals(other Value) bool {
 	return arithmetic == other
 }
 
-func (arithmetic Arithmetic) Eval(frame *StackFrame) (Value, error) {
+func (arithmetic Arithmetic) Eval() (Value, error) {
 	if arithmetic.Op == "" {
 		result, err := arithmetic.Unary.Eval()
 		if err != nil {
 			return nil, err
 		}
-		return result
+		return result, nil
 	}
 	return nil, errors.New("Unimplemented")
 }
 
-func (binary Binary) Eval(frame *StackFrame) (Value, error) {
-	if binary.Op == "==" {
-		// TODO: split left/right
-		result, err := binary.Arithmetic.Eval(frame).Equals(binary.Next.Eval(frame))
-		if err != nil {
-			return nil, err
-		}
-		return result
+func (unary Unary) String() string {
+	return "unary"
+}
+
+func (unary Unary) Equals(other Value) bool {
+	return unary == other
+}
+
+func (unary Unary) Eval() (Value, error) {
+	if unary.Primary != nil && unary.Primary.Number != nil {
+		return NumberValue{val: *unary.Primary.Number}, nil
 	}
 	return nil, errors.New("Unimplemented")
 }
 
 func (expr Expression) Eval(frame *StackFrame) (Value, error) {
 	if expr.Binary != nil {
-		return expr.Binary.Eval(frame)
+		return expr.Binary.Eval()
 	}
 	return nil, errors.New("Unimplemented")
 }
 
-func (exprList ExpressionList) Eval(stackframe *StackFrame) {
+func (exprList ExpressionList) Eval(stackframe *StackFrame) (Value, error) {
 	for _, node := range exprList.Expressions {
-		println(node.String())
+		if node.Binary != nil {
+			result, err := node.Binary.Eval()
+			if err != nil {
+				return nil, err
+			}
+			return result, nil
+		}
 	}
+	return nil, errors.New("Unimplemented")
 }

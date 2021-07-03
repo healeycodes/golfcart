@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/alecthomas/kong"
@@ -21,5 +22,11 @@ func main() {
 
 	// repr.Println(ast)
 	frame := golfcart.StackFrame{Values: make(map[string]golfcart.Value)}
-	ast.Eval(&frame)
+	result, err := ast.Eval(&frame)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("%T\n", result)
+	println(result.String())
 }
