@@ -24,7 +24,8 @@ func main() {
 	frame := golfcart.StackFrame{Values: make(map[string]golfcart.Value)}
 	result, err := ast.Eval(&frame)
 	if err != nil {
-		panic(err)
+		println(fmt.Sprintf("%v", err))
+		return
 	}
 
 	fmt.Printf("%T\n", result)

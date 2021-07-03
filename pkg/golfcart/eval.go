@@ -8,6 +8,7 @@ import (
 
 type StackFrame struct {
 	Values map[string]Value
+	Parent map[string]Value
 }
 
 type Value interface {
@@ -102,7 +103,7 @@ func (binary Binary) Eval() (Value, error) {
 	if binary.Op == "==" {
 		return BoolValue{val: left.Equals(right)}, nil
 	}
-	return nil, errors.New("Unimplemented")
+	return nil, errors.New("unimplemented Binary Eval")
 }
 
 func (arithmetic Arithmetic) String() string {
@@ -114,14 +115,28 @@ func (arithmetic Arithmetic) Equals(other Value) bool {
 }
 
 func (arithmetic Arithmetic) Eval() (Value, error) {
-	if arithmetic.Op == "" {
-		result, err := arithmetic.Unary.Eval()
-		if err != nil {
-			return nil, err
-		}
-		return result, nil
+	left, err := arithmetic.Unary.Eval()
+	if err != nil {
+		return nil, err
 	}
-	return nil, errors.New("Unimplemented")
+	if arithmetic.Op == "" {
+		return left, nil
+	}
+
+	right, err := arithmetic.Next.Eval()
+	if err != nil {
+		return nil, err
+	}
+	if arithmetic.Op == "+" {
+		left, okLeft := left.(NumberValue)
+		right, okRight := right.(NumberValue)
+		if okLeft && okRight {
+			return NumberValue{val: left.val + right.val}, nil
+		}
+		return nil, errors.New(arithmetic.EndPos.String() + " addition only supported between numbers")
+	}
+
+	return nil, errors.New("unimplemented Arithmetic Eval")
 }
 
 func (unary Unary) String() string {
@@ -149,19 +164,11 @@ func (unary Unary) Eval() (Value, error) {
 	if unary.Primary != nil && unary.Primary.Number != nil {
 		return NumberValue{val: *unary.Primary.Number}, nil
 	}
-	if unary.Unary != nil {
-		if unary.Op == "!" {
-			if unary.Primary.Bool != nil {
-				return BoolValue{val: !*unary.Primary.Bool}, nil
-			}
-		}
-		if unary.Op == "-" {
-			if unary.Primary.Number != nil {
-				return NumberValue{val: -*unary.Primary.Number}, nil
-			}
-		}
+	if unary.Primary != nil && unary.Primary.Bool != nil {
+		return BoolValue{val: *unary.Primary.Bool}, nil
 	}
-	return nil, errors.New("Unimplemented")
+
+	return nil, errors.New("unimplemented Unary Eval")
 }
 
 func (expr Expression) Eval(frame *StackFrame) (Value, error) {
