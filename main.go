@@ -5,7 +5,7 @@ import (
 
 	"github.com/alecthomas/kong"
 	"github.com/alecthomas/repr"
-	"github.com/healeycodes/lang"
+	"github.com/healeycodes/lang/pkg/lang"
 )
 
 func main() {
