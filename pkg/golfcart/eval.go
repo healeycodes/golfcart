@@ -69,14 +69,6 @@ func (exprList ExpressionList) Equals(_ Value) bool {
 	return false
 }
 
-func (expr Expression) String() string {
-	return "expr"
-}
-
-func (expr Expression) Equals(other Value) bool {
-	return expr == other
-}
-
 func (binary Binary) String() string {
 	return "binary"
 }
@@ -149,26 +141,51 @@ func (unary Unary) Equals(other Value) bool {
 
 func (unary Unary) Eval() (Value, error) {
 	if unary.Op == "!" {
-		if unary.Unary.Primary.Bool != nil {
-			return BoolValue{val: !*unary.Unary.Primary.Bool}, nil
+		unary, err := unary.Unary.Eval()
+		if err != nil {
+			return nil, err
 		}
-		return nil, errors.New("Expected bool at " + unary.Unary.EndPos.String())
+		if boolValue, ok := unary.(BoolValue); ok {
+			return BoolValue{val: !boolValue.val}, nil
+		}
+		return nil, errors.New(unary.String() + " expected bool after '!'")
 	}
 	if unary.Op == "-" {
-		if unary.Unary.Primary.Number != nil {
-			return NumberValue{val: -*unary.Unary.Primary.Number}, nil
+		unary, err := unary.Unary.Eval()
+		if err != nil {
+			return nil, err
 		}
-		return nil, errors.New("Expected number at " + unary.EndPos.String())
+		if numberValue, ok := unary.(NumberValue); ok {
+			return NumberValue{val: -numberValue.val}, nil
+		}
+		return nil, errors.New(unary.String() + " expected number after '-'")
 	}
 
-	if unary.Primary != nil && unary.Primary.Number != nil {
-		return NumberValue{val: *unary.Primary.Number}, nil
-	}
-	if unary.Primary != nil && unary.Primary.Bool != nil {
-		return BoolValue{val: *unary.Primary.Bool}, nil
+	if unary.Primary != nil {
+		return unary.Primary.Eval(), nil
 	}
 
 	return nil, errors.New("unimplemented Unary Eval")
+}
+
+func (primary Primary) String() string {
+	return "primary"
+}
+
+func (primary Primary) Equals(other Value) bool {
+	return primary == other
+}
+
+func (primary Primary) Eval() (Value, error) {
+	// TODO
+}
+
+func (expr Expression) String() string {
+	return "expr"
+}
+
+func (expr Expression) Equals(other Value) bool {
+	return expr == other
 }
 
 func (expr Expression) Eval(frame *StackFrame) (Value, error) {
