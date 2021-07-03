@@ -15,6 +15,19 @@ type Value interface {
 	Equals(Value) bool
 }
 
+type NilValue struct{}
+
+func (numberValue NilValue) String() string {
+	return "nil"
+}
+
+func (numberValue NilValue) Equals(other Value) bool {
+	if _, ok := other.(NilValue); ok {
+		return true
+	}
+	return false
+}
+
 type NumberValue struct {
 	val float64
 }
@@ -120,8 +133,33 @@ func (unary Unary) Equals(other Value) bool {
 }
 
 func (unary Unary) Eval() (Value, error) {
+	if unary.Op == "!" {
+		if unary.Unary.Primary.Bool != nil {
+			return BoolValue{val: !*unary.Unary.Primary.Bool}, nil
+		}
+		return nil, errors.New("Expected bool at " + unary.Unary.EndPos.String())
+	}
+	if unary.Op == "-" {
+		if unary.Unary.Primary.Number != nil {
+			return NumberValue{val: -*unary.Unary.Primary.Number}, nil
+		}
+		return nil, errors.New("Expected number at " + unary.EndPos.String())
+	}
+
 	if unary.Primary != nil && unary.Primary.Number != nil {
 		return NumberValue{val: *unary.Primary.Number}, nil
+	}
+	if unary.Unary != nil {
+		if unary.Op == "!" {
+			if unary.Primary.Bool != nil {
+				return BoolValue{val: !*unary.Primary.Bool}, nil
+			}
+		}
+		if unary.Op == "-" {
+			if unary.Primary.Number != nil {
+				return NumberValue{val: -*unary.Primary.Number}, nil
+			}
+		}
 	}
 	return nil, errors.New("Unimplemented")
 }
@@ -134,14 +172,20 @@ func (expr Expression) Eval(frame *StackFrame) (Value, error) {
 }
 
 func (exprList ExpressionList) Eval(stackframe *StackFrame) (Value, error) {
+	results := make([]Value, 0)
 	for _, node := range exprList.Expressions {
 		if node.Binary != nil {
 			result, err := node.Binary.Eval()
 			if err != nil {
 				return nil, err
 			}
-			return result, nil
+			results = append(results, result)
 		}
 	}
-	return nil, errors.New("Unimplemented")
+
+	if len(results) == 0 {
+		return NilValue{}, nil
+	}
+
+	return results[0], nil
 }
