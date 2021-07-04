@@ -16,17 +16,22 @@ func (context *Context) Init() {
 
 type StackFrame struct {
 	values map[string]Value
-	parent map[string]Value
+	parent *StackFrame
+}
+
+func (frame *StackFrame) GetChild() *StackFrame {
+	childFrame := StackFrame{parent: frame, values: make(map[string]Value)}
+	return &childFrame
 }
 
 func (frame *StackFrame) Get(key Value) (Value, error) {
-	// if _, ok := key.(IdentifierValue); ok {
-	// 	return nil, errors.New("uninitialized identifer used: " + key.String())
-	// }
 	value, ok := frame.values[key.String()]
 	if ok {
 		return value, nil
 	}
+
+	// TODO recursive look up frames
+
 	return nil, errors.New("cannot find value for '" + key.String() + "'")
 }
 
@@ -106,6 +111,42 @@ func (boolValue BoolValue) Equals(other Value) bool {
 	return boolValue == other
 }
 
+type FunctionValue struct {
+	parameters  []string
+	frame       *StackFrame
+	expressions []*Expression
+}
+
+func (functionValue FunctionValue) String() string {
+	return "FunctionValue"
+}
+
+func (functionValue FunctionValue) Equals(other Value) bool {
+	// TODO: should function values be comparable?
+	return false
+}
+
+func (functionValue FunctionValue) Eval(args []Value) (Value, error) {
+	if len(args) != len(functionValue.parameters) {
+		// TODO: improve error message (+ line number if pos?)
+		return nil, errors.New("function called with incorrect number of arguments")
+	}
+	functionFrame := functionValue.frame.GetChild()
+	for i, parameter := range functionValue.parameters {
+		functionFrame.Set(IdentifierValue{val: parameter}, args[i])
+	}
+	var result Value
+	var err error
+	result = NilValue{}
+	for _, expression := range functionValue.expressions {
+		result, err = expression.Eval(functionFrame)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return result, nil
+}
+
 // --
 
 func (exprList ExpressionList) String() string {
@@ -161,6 +202,21 @@ func (expr Expression) Eval(frame *StackFrame) (Value, error) {
 		return result, nil
 	}
 	return nil, errors.New("unimplemented Expression Eval")
+}
+
+func (functionLiteral FunctionLiteral) String() string {
+	return "functionLiteral"
+}
+
+func (functionLiteral FunctionLiteral) Equals(other Value) bool {
+	// TODO: should function literals be comparable?
+	return false
+}
+
+func (functionLiteral FunctionLiteral) Eval(frame *StackFrame) (Value, error) {
+	closureFrame := frame.GetChild()
+	functionValue := FunctionValue{parameters: functionLiteral.Parameters, frame: closureFrame, expressions: functionLiteral.Body}
+	return functionValue, nil
 }
 
 func (assignment Assignment) String() string {
@@ -360,8 +416,8 @@ func (primary Primary) Equals(other Value) bool {
 }
 
 func (primary Primary) Eval(frame *StackFrame) (Value, error) {
-	if primary.Ident != nil {
-		identifierValue := IdentifierValue{val: *primary.Ident}
+	if primary.Ident != "" {
+		identifierValue := IdentifierValue{val: primary.Ident}
 		return identifierValue, nil
 	}
 	if primary.Number != nil {

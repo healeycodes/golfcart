@@ -130,8 +130,9 @@ type Unary struct {
 type Primary struct {
 	Pos lexer.Position
 
-	Ident         *string     `@Ident`
-	Number        *float64    `| @Float | @Int`
+	Ident  string   `@Ident`
+	Number *float64 `| @Float | @Int`
+	// Nilable so that we can check which Primary this is
 	Str           *string     `| @String`
 	Bool          *bool       `| ( @"true" | "false" )`
 	Nil           *bool       `| @"nil"`
@@ -143,7 +144,7 @@ type Call struct {
 
 	Primary    *Primary      `@@ ( "()"`
 	Parameters *[]Expression `  | "(" ( @@ ( "," @@ )* )? ")" `
-	Ident      *string       `  | "." @Ident`
+	Ident      string        `  | "." @Ident`
 	Brackets   *Expression   `  | "[" @@ "]" )`
 }
 
@@ -157,8 +158,8 @@ type ObjectEntry struct {
 type FunctionLiteral struct {
 	Pos lexer.Position
 
-	Parameters []*string     `( ( "(" ")" | "(" (@Ident ("," @Ident)*) ")" | @Ident ) "=" ">" )`
-	Body       []*Expression `( "{" @@* "}" | @@ )`
+	Parameters []string      `"(" ( @Ident ( "," @Ident )* )? ")"`
+	Body       []*Expression `"=>" ( "{" @@* "}" | @@ )`
 }
 
 func GenerateAST(source string) (*ExpressionList, error) {
