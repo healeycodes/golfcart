@@ -22,10 +22,10 @@ type Expression struct {
 	While           *While           `| @@`
 	If              *If              `| @@`
 	Assignment      *Assignment      `| @@`
-	LogicAnd        *LogicAnd        `| @@`
 	FunctionLiteral *FunctionLiteral `| @@`
 	ListLiteral     *[]Expression    `| "[" ( @@ ("," @@)* ","? )? "]"`
 	ObjectLiteral   *[]ObjectEntry   `| "{" ( @@ ("," @@)* ","? )? "}"`
+	Call            *Call            `| @@`
 }
 
 type Break struct {
@@ -71,12 +71,11 @@ type If struct {
 }
 
 type Assignment struct {
-	Pos    lexer.Position
-	EndPos lexer.Position
+	Pos lexer.Position
 
-	Ident      *string     `@Ident`
-	Op         string      `"="`
-	Expression *Expression `@@`
+	LogicAnd *LogicAnd `@@`
+	Op       string    `( @"="`
+	Next     *LogicAnd `  @@ )?`
 }
 
 type LogicAnd struct {
@@ -128,19 +127,18 @@ type Multiplication struct {
 	Pos    lexer.Position
 	EndPos lexer.Position
 
-	Logical *Unary          `@@`
-	Op      string          `[ @( "/" | "*" | "%")`
-	Next    *Multiplication `  @@ ]`
+	Unary *Unary          `@@`
+	Op    string          `[ @( "/" | "*" | "%")`
+	Next  *Multiplication `  @@ ]`
 }
 
 type Unary struct {
 	Pos    lexer.Position
 	EndPos lexer.Position
 
-	Op      string   `[ ( @( "!" | "-" )`
-	Unary   *Unary   `  @@ ) ]`
+	Op      string   `( @( "!" | "-" )`
+	Unary   *Unary   `  @@ )`
 	Primary *Primary `| @@`
-	Call    *Call    `| @@`
 }
 
 type Primary struct {
@@ -152,14 +150,14 @@ type Primary struct {
 	Str           *string     `| @String`
 	Bool          *bool       `| ( @"true" | "false" )`
 	Nil           *bool       `| @"nil"`
-	SubExpression *Expression `| "(" @@ ")" `
+	SubExpression *Expression `| "(" @@ ")"`
 }
 
 type Call struct {
-	Expression *Expression   `@@`
-	Parameters *[]Expression `[ ( "(" ( @@ ("," @@)* )? ")"`
-	Ident      *string       `	| ( "." @Ident `
-	Brackets   *Expression   `    | "[" @@ "]" ) ]`
+	Primary    *Primary      `@@ "("`
+	Parameters *[]Expression `  ( @@ ("," @@)* )? ")" )`
+	Ident      *string       `	  | "." @Ident`
+	Brackets   *Expression   `    | "[" @@ "]" )`
 }
 
 type ObjectEntry struct {

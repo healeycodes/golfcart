@@ -7,8 +7,20 @@ import (
 )
 
 type StackFrame struct {
-	Values map[string]Value
-	Parent map[string]Value
+	values map[string]Value
+	parent map[string]Value
+}
+
+func (frame *StackFrame) Get(key Value, value Value) {
+	frame.values[key.String()] = value
+}
+
+func (frame *StackFrame) Set(key Value) (Value, error) {
+	value, ok := frame.values[key.String()]
+	if ok {
+		return value, nil
+	}
+	return nil, errors.New("cannot find value for " + key.String())
 }
 
 type Value interface {
@@ -97,16 +109,14 @@ func (exprList ExpressionList) Equals(_ Value) bool {
 	return false
 }
 
-func (exprList ExpressionList) Eval(stackframe *StackFrame) (Value, error) {
+func (exprList ExpressionList) Eval(frame *StackFrame) (Value, error) {
 	results := make([]Value, 0)
 	for _, node := range exprList.Expressions {
-		if node.LogicAnd != nil {
-			result, err := node.LogicAnd.Eval()
-			if err != nil {
-				return nil, err
-			}
-			results = append(results, result)
+		result, err := node.Eval(frame)
+		if err != nil {
+			return nil, err
 		}
+		results = append(results, result)
 	}
 
 	if len(results) == 0 {
@@ -125,10 +135,34 @@ func (expr Expression) Equals(other Value) bool {
 }
 
 func (expr Expression) Eval(frame *StackFrame) (Value, error) {
-	if expr.LogicAnd != nil {
-		return expr.LogicAnd.Eval()
+	if expr.Assignment != nil {
+		return expr.Assignment.Eval(frame)
 	}
 	return nil, errors.New("Unimplemented")
+}
+
+func (assignment Assignment) String() string {
+	return "assignment"
+}
+
+func (assignment Assignment) Equals(other Value) bool {
+	return assignment == other
+}
+
+func (assignment Assignment) Eval(frame *StackFrame) (Value, error) {
+	left, err := assignment.LogicAnd.Eval(frame)
+	if err != nil {
+		return nil, err
+	}
+	if assignment.Op != "" {
+		return left, nil
+	}
+	right, err := assignment.LogicAnd.Eval(frame)
+	if err != nil {
+		return nil, err
+	}
+	frame.Set(left, right)
+	return right, nil
 }
 
 func (logicAnd LogicAnd) String() string {
@@ -139,7 +173,7 @@ func (logicAnd LogicAnd) Equals(other Value) bool {
 	return logicAnd == other
 }
 
-func (logicAnd LogicAnd) Eval() (Value, error) {
+func (logicAnd LogicAnd) Eval(frame *StackFrame) (Value, error) {
 	return nil, errors.New("unimplemented LogicAnd Eval")
 }
 
@@ -151,7 +185,7 @@ func (logicOr LogicOr) Equals(other Value) bool {
 	return logicOr == other
 }
 
-func (logicOr LogicOr) Eval() (Value, error) {
+func (logicOr LogicOr) Eval(frame *StackFrame) (Value, error) {
 	return nil, errors.New("unimplemented LogicOr Eval")
 }
 
@@ -163,7 +197,7 @@ func (equality Equality) Equals(other Value) bool {
 	return equality == other
 }
 
-func (equality Equality) Eval() (Value, error) {
+func (equality Equality) Eval(frame *StackFrame) (Value, error) {
 	return nil, errors.New("unimplemented Equality Eval")
 }
 
@@ -175,7 +209,7 @@ func (comparison Comparison) Equals(other Value) bool {
 	return comparison == other
 }
 
-func (comparison Comparison) Eval() (Value, error) {
+func (comparison Comparison) Eval(frame *StackFrame) (Value, error) {
 	return nil, errors.New("unimplemented Comparison Eval")
 }
 
@@ -187,7 +221,7 @@ func (addition Addition) Equals(other Value) bool {
 	return addition == other
 }
 
-func (addition Addition) Eval() (Value, error) {
+func (addition Addition) Eval(frame *StackFrame) (Value, error) {
 	return nil, errors.New("unimplemented Addition Eval")
 }
 
@@ -199,7 +233,7 @@ func (multiplication Multiplication) Equals(other Value) bool {
 	return multiplication == other
 }
 
-func (multiplication Multiplication) Eval() (Value, error) {
+func (multiplication Multiplication) Eval(frame *StackFrame) (Value, error) {
 	return nil, errors.New("unimplemented Multiplication Eval")
 }
 
@@ -211,9 +245,9 @@ func (unary Unary) Equals(other Value) bool {
 	return unary == other
 }
 
-func (unary Unary) Eval() (Value, error) {
+func (unary Unary) Eval(frame *StackFrame) (Value, error) {
 	if unary.Op == "!" {
-		unary, err := unary.Unary.Eval()
+		unary, err := unary.Unary.Eval(frame)
 		if err != nil {
 			return nil, err
 		}
@@ -223,7 +257,7 @@ func (unary Unary) Eval() (Value, error) {
 		return nil, errors.New(unary.String() + " expected bool after '!'")
 	}
 	if unary.Op == "-" {
-		unary, err := unary.Unary.Eval()
+		unary, err := unary.Unary.Eval(frame)
 		if err != nil {
 			return nil, err
 		}
@@ -234,7 +268,7 @@ func (unary Unary) Eval() (Value, error) {
 	}
 
 	if unary.Primary != nil {
-		return unary.Primary.Eval()
+		return unary.Primary.Eval(frame)
 	}
 
 	return nil, errors.New("unimplemented Unary Eval")
@@ -248,7 +282,7 @@ func (primary Primary) Equals(other Value) bool {
 	panic("unimplemented Primary Equals")
 }
 
-func (primary Primary) Eval() (Value, error) {
+func (primary Primary) Eval(frame *StackFrame) (Value, error) {
 	if primary.Ident != nil {
 		return VariableValue{val: *primary.Ident}, nil
 	}
