@@ -6,21 +6,29 @@ import (
 	"strings"
 )
 
+type Context struct {
+	stackFrame StackFrame
+}
+
+func (context *Context) Init() {
+	context.stackFrame = StackFrame{values: make(map[string]Value)}
+}
+
 type StackFrame struct {
 	values map[string]Value
 	parent map[string]Value
 }
 
-func (frame *StackFrame) Get(key Value, value Value) {
-	frame.values[key.String()] = value
-}
-
-func (frame *StackFrame) Set(key Value) (Value, error) {
+func (frame *StackFrame) Get(key Value) (Value, error) {
 	value, ok := frame.values[key.String()]
 	if ok {
 		return value, nil
 	}
 	return nil, errors.New("cannot find value for " + key.String())
+}
+
+func (frame *StackFrame) Set(key Value, value Value) {
+	frame.values[key.String()] = value
 }
 
 type Value interface {
@@ -109,10 +117,10 @@ func (exprList ExpressionList) Equals(_ Value) bool {
 	return false
 }
 
-func (exprList ExpressionList) Eval(frame *StackFrame) (Value, error) {
+func (exprList ExpressionList) Eval(context *Context) (Value, error) {
 	results := make([]Value, 0)
 	for _, node := range exprList.Expressions {
-		result, err := node.Eval(frame)
+		result, err := node.Eval(&context.stackFrame)
 		if err != nil {
 			return nil, err
 		}
@@ -247,24 +255,24 @@ func (unary Unary) Equals(other Value) bool {
 
 func (unary Unary) Eval(frame *StackFrame) (Value, error) {
 	if unary.Op == "!" {
-		unary, err := unary.Unary.Eval(frame)
+		_unary, err := unary.Unary.Eval(frame)
 		if err != nil {
 			return nil, err
 		}
-		if boolValue, ok := unary.(BoolValue); ok {
+		if boolValue, ok := _unary.(BoolValue); ok {
 			return BoolValue{val: !boolValue.val}, nil
 		}
-		return nil, errors.New(unary.String() + " expected bool after '!'")
+		return nil, errors.New(unary.Pos.String() + " expected bool after '!'")
 	}
 	if unary.Op == "-" {
-		unary, err := unary.Unary.Eval(frame)
+		_unary, err := unary.Unary.Eval(frame)
 		if err != nil {
 			return nil, err
 		}
-		if numberValue, ok := unary.(NumberValue); ok {
+		if numberValue, ok := _unary.(NumberValue); ok {
 			return NumberValue{val: -numberValue.val}, nil
 		}
-		return nil, errors.New(unary.String() + " expected number after '-'")
+		return nil, errors.New(unary.Pos.String() + " expected number after '-'")
 	}
 
 	if unary.Primary != nil {

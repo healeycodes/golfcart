@@ -154,10 +154,10 @@ type Primary struct {
 }
 
 type Call struct {
-	Primary    *Primary      `@@ "("`
-	Parameters *[]Expression `  ( @@ ("," @@)* )? ")" )`
-	Ident      *string       `	  | "." @Ident`
-	Brackets   *Expression   `    | "[" @@ "]" )`
+	Primary    *Primary      `@@ ( "()"`
+	Parameters *[]Expression `  | "(" ( @@ | ( "," @@ )+ ) ")" `
+	Ident      *string       `  | "." @Ident`
+	Brackets   *Expression   `  | "[" @@ "]" )`
 }
 
 type ObjectEntry struct {

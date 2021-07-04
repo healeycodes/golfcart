@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/alecthomas/kong"
-	"github.com/alecthomas/repr"
 	"github.com/healeycodes/golfcart/pkg/golfcart"
 )
 
@@ -21,10 +20,12 @@ func main() {
 		ctx.FatalIfErrorf(err)
 	}
 
-	repr.Println(ast)
-	panic(0)
-	frame := golfcart.StackFrame{Values: make(map[string]golfcart.Value)}
-	result, err := ast.Eval(&frame)
+	// repr.Println(ast)
+
+	context := golfcart.Context{}
+	context.Init()
+
+	result, err := ast.Eval(&context)
 	if err != nil {
 		println(fmt.Sprintf("%v", err))
 		return
