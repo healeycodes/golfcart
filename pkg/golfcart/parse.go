@@ -6,45 +6,40 @@ import (
 )
 
 type ExpressionList struct {
-	Pos    lexer.Position
-	EndPos lexer.Position
+	Pos lexer.Position
 
 	Expressions []*Expression `@@*`
 }
 
 type Expression struct {
-	Pos    lexer.Position
-	EndPos lexer.Position
+	Pos lexer.Position
 
-	Break           *Break           `  @@`
-	Continue        *Continue        `| @@`
-	For             *For             `| @@`
-	While           *While           `| @@`
-	If              *If              `| @@`
+	Call            *Call            ` @@`
 	Assignment      *Assignment      `| @@`
 	FunctionLiteral *FunctionLiteral `| @@`
 	ListLiteral     *[]Expression    `| "[" ( @@ ("," @@)* ","? )? "]"`
 	ObjectLiteral   *[]ObjectEntry   `| "{" ( @@ ("," @@)* ","? )? "}"`
-	Call            *Call            `| @@`
+	If              *If              `| @@`
+	For             *For             `| @@`
+	While           *While           `| @@`
+	Break           *Break           `| @@`
+	Continue        *Continue        `| @@`
 }
 
 type Break struct {
-	Pos    lexer.Position
-	EndPos lexer.Position
+	Pos lexer.Position
 
 	Break string `"break"`
 }
 
 type Continue struct {
-	Pos    lexer.Position
-	EndPos lexer.Position
+	Pos lexer.Position
 
 	Continue string `"continue"`
 }
 
 type For struct {
-	Pos    lexer.Position
-	EndPos lexer.Position
+	Pos lexer.Position
 
 	Init      []*Assignment `"for" ( @@* ("," @@ )* )* ";"`
 	Condition *Expression   `@@ ";"`
@@ -53,16 +48,14 @@ type For struct {
 }
 
 type While struct {
-	Pos    lexer.Position
-	EndPos lexer.Position
+	Pos lexer.Position
 
 	Condition *Expression   `"while" @@`
 	Body      []*Expression `"{" @@* "}"`
 }
 
 type If struct {
-	Pos    lexer.Position
-	EndPos lexer.Position
+	Pos lexer.Position
 
 	Init      []*Assignment `"if" ( @@ ("," @@ )* ";" )?`
 	Condition *Expression   `@@`
@@ -79,8 +72,7 @@ type Assignment struct {
 }
 
 type LogicAnd struct {
-	Pos    lexer.Position
-	EndPos lexer.Position
+	Pos lexer.Position
 
 	LogicOr *LogicOr  `@@`
 	Op      string    `[ @( "and" )`
@@ -88,8 +80,7 @@ type LogicAnd struct {
 }
 
 type LogicOr struct {
-	Pos    lexer.Position
-	EndPos lexer.Position
+	Pos lexer.Position
 
 	Equality *Equality `@@`
 	Op       string    `[ @( "or" )`
@@ -97,8 +88,7 @@ type LogicOr struct {
 }
 
 type Equality struct {
-	Pos    lexer.Position
-	EndPos lexer.Position
+	Pos lexer.Position
 
 	Comparison *Comparison `@@`
 	Op         string      `[ @( "!" "=" | "=" "=" )`
@@ -106,8 +96,7 @@ type Equality struct {
 }
 
 type Comparison struct {
-	Pos    lexer.Position
-	EndPos lexer.Position
+	Pos lexer.Position
 
 	Addition *Addition   `@@`
 	Op       string      `[ @( ">" "=" | ">" | "<" "=" | "<" )`
@@ -115,8 +104,7 @@ type Comparison struct {
 }
 
 type Addition struct {
-	Pos    lexer.Position
-	EndPos lexer.Position
+	Pos lexer.Position
 
 	Multiplication *Multiplication `@@`
 	Op             string          `[ @( "-" | "+" )`
@@ -124,8 +112,7 @@ type Addition struct {
 }
 
 type Multiplication struct {
-	Pos    lexer.Position
-	EndPos lexer.Position
+	Pos lexer.Position
 
 	Unary *Unary          `@@`
 	Op    string          `[ @( "/" | "*" | "%")`
@@ -133,8 +120,7 @@ type Multiplication struct {
 }
 
 type Unary struct {
-	Pos    lexer.Position
-	EndPos lexer.Position
+	Pos lexer.Position
 
 	Op      string   `( @( "!" | "-" )`
 	Unary   *Unary   `  @@ )`
@@ -142,8 +128,7 @@ type Unary struct {
 }
 
 type Primary struct {
-	Pos    lexer.Position
-	EndPos lexer.Position
+	Pos lexer.Position
 
 	Ident         *string     `@Ident`
 	Number        *float64    `| @Float | @Int`
@@ -154,23 +139,23 @@ type Primary struct {
 }
 
 type Call struct {
+	Pos lexer.Position
+
 	Primary    *Primary      `@@ ( "()"`
-	Parameters *[]Expression `  | "(" ( @@ | ( "," @@ )+ ) ")" `
+	Parameters *[]Expression `  | "(" ( @@ ( "," @@ )* )? ")" `
 	Ident      *string       `  | "." @Ident`
 	Brackets   *Expression   `  | "[" @@ "]" )`
 }
 
 type ObjectEntry struct {
-	Pos    lexer.Position
-	EndPos lexer.Position
+	Pos lexer.Position
 
 	Key   *Expression `@@ ":"`
 	Value *Expression `@@`
 }
 
 type FunctionLiteral struct {
-	Pos    lexer.Position
-	EndPos lexer.Position
+	Pos lexer.Position
 
 	Parameters []*string     `( ( "(" ")" | "(" (@Ident ("," @Ident)*) ")" | @Ident ) "=" ">" )`
 	Body       []*Expression `( "{" @@* "}" | @@ )`

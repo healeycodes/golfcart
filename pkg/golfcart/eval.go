@@ -20,11 +20,14 @@ type StackFrame struct {
 }
 
 func (frame *StackFrame) Get(key Value) (Value, error) {
+	// if _, ok := key.(IdentifierValue); ok {
+	// 	return nil, errors.New("uninitialized identifer used: " + key.String())
+	// }
 	value, ok := frame.values[key.String()]
 	if ok {
 		return value, nil
 	}
-	return nil, errors.New("cannot find value for " + key.String())
+	return nil, errors.New("cannot find value for '" + key.String() + "'")
 }
 
 func (frame *StackFrame) Set(key Value, value Value) {
@@ -47,6 +50,18 @@ func (numberValue NilValue) Equals(other Value) bool {
 		return true
 	}
 	return false
+}
+
+type IdentifierValue struct {
+	val string
+}
+
+func (identifier IdentifierValue) String() string {
+	return identifier.val
+}
+
+func (identifier IdentifierValue) Equals(other Value) bool {
+	panic("identifiers shouldn't be compared")
 }
 
 type NumberValue struct {
@@ -91,18 +106,6 @@ func (boolValue BoolValue) Equals(other Value) bool {
 	return boolValue == other
 }
 
-type VariableValue struct {
-	val string
-}
-
-func (variableValue VariableValue) String() string {
-	return variableValue.val
-}
-
-func (variableValue VariableValue) Equals(other Value) bool {
-	panic("unimplemented VariableValue Equals")
-}
-
 // --
 
 func (exprList ExpressionList) String() string {
@@ -131,7 +134,7 @@ func (exprList ExpressionList) Eval(context *Context) (Value, error) {
 		return NilValue{}, nil
 	}
 
-	return results[0], nil
+	return results[len(results)-1], nil
 }
 
 func (expr Expression) String() string {
@@ -144,9 +147,20 @@ func (expr Expression) Equals(other Value) bool {
 
 func (expr Expression) Eval(frame *StackFrame) (Value, error) {
 	if expr.Assignment != nil {
-		return expr.Assignment.Eval(frame)
+		result, err := expr.Assignment.Eval(frame)
+		if err != nil {
+			return nil, err
+		}
+		if identifierValue, ok := result.(IdentifierValue); ok {
+			value, err := frame.Get(identifierValue)
+			if err != nil {
+				return nil, err
+			}
+			return value, nil
+		}
+		return result, nil
 	}
-	return nil, errors.New("Unimplemented")
+	return nil, errors.New("unimplemented Expression Eval")
 }
 
 func (assignment Assignment) String() string {
@@ -162,15 +176,15 @@ func (assignment Assignment) Eval(frame *StackFrame) (Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	if assignment.Op != "" {
+	if assignment.Op == "" {
 		return left, nil
 	}
-	right, err := assignment.LogicAnd.Eval(frame)
+	right, err := assignment.Next.Eval(frame)
 	if err != nil {
 		return nil, err
 	}
 	frame.Set(left, right)
-	return right, nil
+	return NilValue{}, nil
 }
 
 func (logicAnd LogicAnd) String() string {
@@ -182,6 +196,17 @@ func (logicAnd LogicAnd) Equals(other Value) bool {
 }
 
 func (logicAnd LogicAnd) Eval(frame *StackFrame) (Value, error) {
+	left, err := logicAnd.LogicOr.Eval(frame)
+	if err != nil {
+		return nil, err
+	}
+	if logicAnd.Op == "" {
+		return left, nil
+	}
+	// right, err := logicAnd.Next.Eval(frame)
+	// if err != nil {
+	// 	return nil, err
+	// }
 	return nil, errors.New("unimplemented LogicAnd Eval")
 }
 
@@ -194,6 +219,13 @@ func (logicOr LogicOr) Equals(other Value) bool {
 }
 
 func (logicOr LogicOr) Eval(frame *StackFrame) (Value, error) {
+	left, err := logicOr.Equality.Eval(frame)
+	if err != nil {
+		return nil, err
+	}
+	if logicOr.Op == "" {
+		return left, nil
+	}
 	return nil, errors.New("unimplemented LogicOr Eval")
 }
 
@@ -206,6 +238,22 @@ func (equality Equality) Equals(other Value) bool {
 }
 
 func (equality Equality) Eval(frame *StackFrame) (Value, error) {
+	left, err := equality.Comparison.Eval(frame)
+	if err != nil {
+		return nil, err
+	}
+	if equality.Op == "" {
+		return left, nil
+	}
+	right, err := equality.Next.Eval(frame)
+	if err != nil {
+		return nil, err
+	}
+	if equality.Op == "==" {
+		return BoolValue{val: left.Equals(right)}, nil
+	} else if equality.Op == "!=" {
+		return BoolValue{val: !left.Equals(right)}, nil
+	}
 	return nil, errors.New("unimplemented Equality Eval")
 }
 
@@ -218,6 +266,13 @@ func (comparison Comparison) Equals(other Value) bool {
 }
 
 func (comparison Comparison) Eval(frame *StackFrame) (Value, error) {
+	left, err := comparison.Addition.Eval(frame)
+	if err != nil {
+		return nil, err
+	}
+	if comparison.Op == "" {
+		return left, nil
+	}
 	return nil, errors.New("unimplemented Comparison Eval")
 }
 
@@ -230,6 +285,13 @@ func (addition Addition) Equals(other Value) bool {
 }
 
 func (addition Addition) Eval(frame *StackFrame) (Value, error) {
+	left, err := addition.Multiplication.Eval(frame)
+	if err != nil {
+		return nil, err
+	}
+	if addition.Op == "" {
+		return left, nil
+	}
 	return nil, errors.New("unimplemented Addition Eval")
 }
 
@@ -242,6 +304,13 @@ func (multiplication Multiplication) Equals(other Value) bool {
 }
 
 func (multiplication Multiplication) Eval(frame *StackFrame) (Value, error) {
+	left, err := multiplication.Unary.Eval(frame)
+	if err != nil {
+		return nil, err
+	}
+	if multiplication.Op == "" {
+		return left, nil
+	}
 	return nil, errors.New("unimplemented Multiplication Eval")
 }
 
@@ -292,12 +361,13 @@ func (primary Primary) Equals(other Value) bool {
 
 func (primary Primary) Eval(frame *StackFrame) (Value, error) {
 	if primary.Ident != nil {
-		return VariableValue{val: *primary.Ident}, nil
+		identifierValue := IdentifierValue{val: *primary.Ident}
+		return identifierValue, nil
 	}
 	if primary.Number != nil {
 		return NumberValue{val: *primary.Number}, nil
 	}
-	if primary.String != nil {
+	if primary.Str != nil {
 		return StringValue{val: *primary.Str}, nil
 	}
 	if primary.Bool != nil {
