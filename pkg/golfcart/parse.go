@@ -22,8 +22,10 @@ type Expression struct {
 	While           *While           `| @@`
 	If              *If              `| @@`
 	Assignment      *Assignment      `| @@`
+	LogicAnd        *LogicAnd        `| @@`
 	FunctionLiteral *FunctionLiteral `| @@`
-	Binary          *Binary          `| @@`
+	ListLiteral     *[]Expression    `| "[" ( @@ ("," @@)* ","? )? "]"`
+	ObjectLiteral   *[]ObjectEntry   `| "{" ( @@ ("," @@)* ","? )? "}"`
 }
 
 type Break struct {
@@ -72,64 +74,92 @@ type Assignment struct {
 	Pos    lexer.Position
 	EndPos lexer.Position
 
-	Variable   string      `@Ident`
+	Ident      *string     `@Ident`
 	Op         string      `"="`
 	Expression *Expression `@@`
 }
 
-type Binary struct {
+type LogicAnd struct {
 	Pos    lexer.Position
 	EndPos lexer.Position
 
-	Arithmetic *Arithmetic `@@`
-	Op         string      `[ @( "!" "=" | "=" "=" | ">" | ">" "=" | "<" | "<" "=" | "or" | "and" )`
-	Next       *Binary     `  @@ ]`
+	LogicOr *LogicOr  `@@`
+	Op      string    `[ @( "and" )`
+	Next    *LogicAnd `  @@ ]`
 }
 
-type Arithmetic struct {
+type LogicOr struct {
 	Pos    lexer.Position
 	EndPos lexer.Position
 
-	Unary *Unary      `@@`
-	Op    string      `[ @( "-" "="* | "+" "="* | "/" "="* | "*" "="* | "^" | "%" | "&" | "|" )`
-	Next  *Arithmetic `  @@ ]`
+	Equality *Equality `@@`
+	Op       string    `[ @( "or" )`
+	Next     *LogicOr  `  @@ ]`
+}
+
+type Equality struct {
+	Pos    lexer.Position
+	EndPos lexer.Position
+
+	Comparison *Comparison `@@`
+	Op         string      `[ @( "!" "=" | "=" "=" )`
+	Next       *Equality   `  @@ ]`
+}
+
+type Comparison struct {
+	Pos    lexer.Position
+	EndPos lexer.Position
+
+	Addition *Addition   `@@`
+	Op       string      `[ @( ">" "=" | ">" | "<" "=" | "<" )`
+	Next     *Comparison `  @@ ]`
+}
+
+type Addition struct {
+	Pos    lexer.Position
+	EndPos lexer.Position
+
+	Multiplication *Multiplication `@@`
+	Op             string          `[ @( "-" | "+" )`
+	Next           *Addition       `  @@ ]`
+}
+
+type Multiplication struct {
+	Pos    lexer.Position
+	EndPos lexer.Position
+
+	Logical *Unary          `@@`
+	Op      string          `[ @( "/" | "*" | "%")`
+	Next    *Multiplication `  @@ ]`
 }
 
 type Unary struct {
 	Pos    lexer.Position
 	EndPos lexer.Position
 
-	Op              string           `( @( "!" | "-" )`
-	Unary           *Unary           `  @@ )`
-	Primary         *Primary         `| @@`
-	FunctionLiteral *FunctionLiteral `| @@`
+	Op      string   `[ ( @( "!" | "-" )`
+	Unary   *Unary   `  @@ ) ]`
+	Primary *Primary `| @@`
+	Call    *Call    `| @@`
 }
 
 type Primary struct {
 	Pos    lexer.Position
 	EndPos lexer.Position
 
-	Call          *Call          `  @@`
-	Access        *Access        `| @@`
-	Ident         string         `| @Ident`
-	Number        *float64       `| @Float | @Int`
-	String        *string        `| @String`
-	Bool          *bool          `| ( @"true" | "false" )`
-	Nil           bool           `| @"nil"`
-	SubExpression *Expression    `| "(" @@ ")" `
-	ListLiteral   *[]Expression  `| "[" ( @@ ("," @@)* ","? )? "]"`
-	ObjectLiteral *[]ObjectEntry `| "{" ( @@ ("," @@)* ","? )? "}"`
+	Ident         *string     `@Ident`
+	Number        *float64    `| @Float | @Int`
+	Str           *string     `| @String`
+	Bool          *bool       `| ( @"true" | "false" )`
+	Nil           *bool       `| @"nil"`
+	SubExpression *Expression `| "(" @@ ")" `
 }
 
 type Call struct {
-	Ident      string        `@Ident`
-	Parameters *[]Expression `"(" ( @@ ("," @@)* )? ")"`
-}
-
-type Access struct {
-	Ident    string     `@Ident`
-	Dot      string     `( "." @Ident`
-	Brackets Expression `| "[" @@ "]" )`
+	Expression *Expression   `@@`
+	Parameters *[]Expression `[ ( "(" ( @@ ("," @@)* )? ")"`
+	Ident      *string       `	| ( "." @Ident `
+	Brackets   *Expression   `    | "[" @@ "]" ) ]`
 }
 
 type ObjectEntry struct {

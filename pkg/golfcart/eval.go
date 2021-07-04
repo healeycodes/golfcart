@@ -41,8 +41,22 @@ func (numberValue NumberValue) Equals(other Value) bool {
 	if other, ok := other.(NumberValue); ok {
 		return numberValue.val == other.val
 	}
+	panic("unimplemented NumberValue Equals")
+}
 
-	panic("Unimplemented")
+type StringValue struct {
+	val string
+}
+
+func (stringValue StringValue) String() string {
+	return stringValue.val
+}
+
+func (stringValue StringValue) Equals(other Value) bool {
+	if other, ok := other.(StringValue); ok {
+		return stringValue.val == other.val
+	}
+	panic("unimplemented StringValue Equals")
 }
 
 type BoolValue struct {
@@ -57,6 +71,20 @@ func (boolValue BoolValue) Equals(other Value) bool {
 	return boolValue == other
 }
 
+type VariableValue struct {
+	val string
+}
+
+func (variableValue VariableValue) String() string {
+	return variableValue.val
+}
+
+func (variableValue VariableValue) Equals(other Value) bool {
+	panic("unimplemented VariableValue Equals")
+}
+
+// --
+
 func (exprList ExpressionList) String() string {
 	s := make([]string, 0)
 	for _, expr := range exprList.Expressions {
@@ -69,66 +97,110 @@ func (exprList ExpressionList) Equals(_ Value) bool {
 	return false
 }
 
-func (binary Binary) String() string {
-	return "binary"
-}
-
-func (binary Binary) Equals(other Value) bool {
-	return binary == other
-}
-
-func (binary Binary) Eval() (Value, error) {
-	left, err := binary.Arithmetic.Eval()
-	if err != nil {
-		return nil, err
-	}
-
-	if binary.Next == nil {
-		return left, nil
-	}
-
-	right, err := binary.Next.Eval()
-	if err != nil {
-		return nil, err
-	}
-
-	if binary.Op == "==" {
-		return BoolValue{val: left.Equals(right)}, nil
-	}
-	return nil, errors.New("unimplemented Binary Eval")
-}
-
-func (arithmetic Arithmetic) String() string {
-	return "arithmetic"
-}
-
-func (arithmetic Arithmetic) Equals(other Value) bool {
-	return arithmetic == other
-}
-
-func (arithmetic Arithmetic) Eval() (Value, error) {
-	left, err := arithmetic.Unary.Eval()
-	if err != nil {
-		return nil, err
-	}
-	if arithmetic.Op == "" {
-		return left, nil
-	}
-
-	right, err := arithmetic.Next.Eval()
-	if err != nil {
-		return nil, err
-	}
-	if arithmetic.Op == "+" {
-		left, okLeft := left.(NumberValue)
-		right, okRight := right.(NumberValue)
-		if okLeft && okRight {
-			return NumberValue{val: left.val + right.val}, nil
+func (exprList ExpressionList) Eval(stackframe *StackFrame) (Value, error) {
+	results := make([]Value, 0)
+	for _, node := range exprList.Expressions {
+		if node.LogicAnd != nil {
+			result, err := node.LogicAnd.Eval()
+			if err != nil {
+				return nil, err
+			}
+			results = append(results, result)
 		}
-		return nil, errors.New(arithmetic.EndPos.String() + " addition only supported between numbers")
 	}
 
-	return nil, errors.New("unimplemented Arithmetic Eval")
+	if len(results) == 0 {
+		return NilValue{}, nil
+	}
+
+	return results[0], nil
+}
+
+func (expr Expression) String() string {
+	return "expr"
+}
+
+func (expr Expression) Equals(other Value) bool {
+	return expr == other
+}
+
+func (expr Expression) Eval(frame *StackFrame) (Value, error) {
+	if expr.LogicAnd != nil {
+		return expr.LogicAnd.Eval()
+	}
+	return nil, errors.New("Unimplemented")
+}
+
+func (logicAnd LogicAnd) String() string {
+	return "equality"
+}
+
+func (logicAnd LogicAnd) Equals(other Value) bool {
+	return logicAnd == other
+}
+
+func (logicAnd LogicAnd) Eval() (Value, error) {
+	return nil, errors.New("unimplemented LogicAnd Eval")
+}
+
+func (logicOr LogicOr) String() string {
+	return "equality"
+}
+
+func (logicOr LogicOr) Equals(other Value) bool {
+	return logicOr == other
+}
+
+func (logicOr LogicOr) Eval() (Value, error) {
+	return nil, errors.New("unimplemented LogicOr Eval")
+}
+
+func (equality Equality) String() string {
+	return "equality"
+}
+
+func (equality Equality) Equals(other Value) bool {
+	return equality == other
+}
+
+func (equality Equality) Eval() (Value, error) {
+	return nil, errors.New("unimplemented Equality Eval")
+}
+
+func (comparison Comparison) String() string {
+	return "comparison"
+}
+
+func (comparison Comparison) Equals(other Value) bool {
+	return comparison == other
+}
+
+func (comparison Comparison) Eval() (Value, error) {
+	return nil, errors.New("unimplemented Comparison Eval")
+}
+
+func (addition Addition) String() string {
+	return "addition"
+}
+
+func (addition Addition) Equals(other Value) bool {
+	return addition == other
+}
+
+func (addition Addition) Eval() (Value, error) {
+	return nil, errors.New("unimplemented Addition Eval")
+}
+
+func (multiplication Multiplication) String() string {
+	return "multiplication"
+}
+
+func (multiplication Multiplication) Equals(other Value) bool {
+	return multiplication == other
+}
+
+func (multiplication Multiplication) Eval() (Value, error) {
+	return nil, errors.New("unimplemented Multiplication Eval")
 }
 
 func (unary Unary) String() string {
@@ -162,7 +234,7 @@ func (unary Unary) Eval() (Value, error) {
 	}
 
 	if unary.Primary != nil {
-		return unary.Primary.Eval(), nil
+		return unary.Primary.Eval()
 	}
 
 	return nil, errors.New("unimplemented Unary Eval")
@@ -173,43 +245,25 @@ func (primary Primary) String() string {
 }
 
 func (primary Primary) Equals(other Value) bool {
-	return primary == other
+	panic("unimplemented Primary Equals")
 }
 
 func (primary Primary) Eval() (Value, error) {
-	// TODO
-}
-
-func (expr Expression) String() string {
-	return "expr"
-}
-
-func (expr Expression) Equals(other Value) bool {
-	return expr == other
-}
-
-func (expr Expression) Eval(frame *StackFrame) (Value, error) {
-	if expr.Binary != nil {
-		return expr.Binary.Eval()
+	if primary.Ident != nil {
+		return VariableValue{val: *primary.Ident}, nil
 	}
-	return nil, errors.New("Unimplemented")
-}
-
-func (exprList ExpressionList) Eval(stackframe *StackFrame) (Value, error) {
-	results := make([]Value, 0)
-	for _, node := range exprList.Expressions {
-		if node.Binary != nil {
-			result, err := node.Binary.Eval()
-			if err != nil {
-				return nil, err
-			}
-			results = append(results, result)
-		}
+	if primary.Number != nil {
+		return NumberValue{val: *primary.Number}, nil
 	}
-
-	if len(results) == 0 {
+	if primary.String != nil {
+		return StringValue{val: *primary.Str}, nil
+	}
+	if primary.Bool != nil {
+		return BoolValue{val: *primary.Bool}, nil
+	}
+	if primary.Nil != nil {
 		return NilValue{}, nil
 	}
 
-	return results[0], nil
+	panic("unimplemented Primary Eval")
 }
