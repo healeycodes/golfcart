@@ -19,6 +19,14 @@ type StackFrame struct {
 	parent *StackFrame
 }
 
+func (frame *StackFrame) String() string {
+	s := ""
+	for key, value := range frame.values {
+		s += key + ": " + value.String() + "\n"
+	}
+	return s
+}
+
 func (frame *StackFrame) GetChild() *StackFrame {
 	childFrame := StackFrame{parent: frame, values: make(map[string]Value)}
 	return &childFrame
@@ -216,8 +224,40 @@ func (functionLiteral FunctionLiteral) Equals(other Value) bool {
 
 func (functionLiteral FunctionLiteral) Eval(frame *StackFrame) (Value, error) {
 	closureFrame := frame.GetChild()
-	panic(1)
 	functionValue := FunctionValue{parameters: functionLiteral.Parameters, frame: closureFrame, expressions: functionLiteral.Body}
+	return functionValue, nil
+}
+
+func (call Call) String() string {
+	return "call"
+}
+
+func (call Call) Equals(other Value) bool {
+	// TODO: should function literals be comparable?
+	return false
+}
+
+func (call Call) Eval(frame *StackFrame) (Value, error) {
+	var args []Value
+	if parameters := call.Parameters; parameters != nil {
+		args = make([]Value, len(*parameters))
+		for i, parameter := range *parameters {
+			args[i] = parameter.Eval(frame)
+		}
+	}
+	if ident := *call.Ident; ident != "" {
+		value, err := frame.Get(IdentifierValue{val: ident})
+		if err != nil {
+			return nil, err
+		}
+		if functionValue, ok := value.(FunctionValue) {
+			argsFrame := frame.GetChild()
+			for _, arg := range args {
+				argsFrame.Set()
+			}
+		}
+		// TODO: check value is callable
+	}
 	return functionValue, nil
 }
 
@@ -418,8 +458,14 @@ func (primary Primary) Equals(other Value) bool {
 }
 
 func (primary Primary) Eval(frame *StackFrame) (Value, error) {
-	if primary.Ident != "" {
-		identifierValue := IdentifierValue{val: primary.Ident}
+	if functionLiteral := primary.FunctionLiteral; functionLiteral != nil {
+		return functionLiteral.Eval(frame)
+	}
+	if call := primary.Call; call != nil {
+		return call.Eval(frame)
+	}
+	if ident := primary.Ident; ident != "" {
+		identifierValue := IdentifierValue{val: ident}
 		return identifierValue, nil
 	}
 	if primary.Number != nil {
@@ -435,5 +481,6 @@ func (primary Primary) Eval(frame *StackFrame) (Value, error) {
 		return NilValue{}, nil
 	}
 
+	println(frame.String())
 	panic("unimplemented Primary Eval")
 }

@@ -1,8 +1,8 @@
 package golfcart
 
 import (
-	"github.com/alecthomas/participle/lexer"
 	"github.com/alecthomas/participle/v2"
+	"github.com/alecthomas/participle/v2/lexer"
 )
 
 type ExpressionList struct {
@@ -14,12 +14,12 @@ type ExpressionList struct {
 type Expression struct {
 	Pos lexer.Position
 
-	Assignment *Assignment `@@`
-	If         *If         `| @@`
+	If         *If         `@@`
 	For        *For        `| @@`
 	While      *While      `| @@`
 	Break      *Break      `| @@`
 	Continue   *Continue   `| @@`
+	Assignment *Assignment `| @@`
 }
 
 type Break struct {
@@ -38,8 +38,8 @@ type For struct {
 	Pos lexer.Position
 
 	Init      []*Assignment `"for" ( @@* ("," @@ )* )* ";"`
-	Condition *Expression   `@@ ";"`
-	Post      *Expression   `@@`
+	Condition *Expression   `@@* ";"`
+	Post      *Expression   `@@*`
 	Body      []*Expression `"{" @@* "}"`
 }
 
@@ -55,7 +55,7 @@ type If struct {
 
 	Init      []*Assignment `"if" ( @@ ";" )?`
 	Condition *Expression   `@@`
-	Body      []*Expression `"{" @@* "}"`
+	IfBody    []*Expression `"{" @@* "}"`
 	ElseBody  []*Expression `( "else" "{" @@* "}" )?`
 }
 
@@ -162,8 +162,11 @@ type Call struct {
 	ComputedAccess *Expression   `    | "[" @@ "]" )`
 }
 
+var (
+	parser = participle.MustBuild(&ExpressionList{}, participle.UseLookahead(2))
+)
+
 func GenerateAST(source string) (*ExpressionList, error) {
-	parser := participle.MustBuild(&ExpressionList{}, participle.UseLookahead(2))
 	expressionList := &ExpressionList{}
 
 	// Print grammar

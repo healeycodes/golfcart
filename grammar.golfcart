@@ -5,27 +5,39 @@ a + b
 a b
 
 "Functions"
-c = (x, y) => x + y
-c = (x, y) => { x + y }
-c = () => {}
+ca = (x, y) => x + y
+cb = (x) => { x }
+cc = () => {}
+
+"Call"
+c(1, 2)
+cc()
 
 "If"
-if true {1}
-if e = 1; e {2}
-if true {3} else {4}
-d = if true {5} else {6}
+if true {1} else {2}
+if false {}
 
 "For"
+for ;; {
+    break
+}
 for i = 0; i < 10; i = i + 1 {
-    7
+    continue
 }
 
 "While"
-while j = 0; false {
-    8
-}
+while false {}
+while true {break}
+
+"Lists"
+list = [1, 2]
+empty = []
 
 "Objects"
 g = {}
 h = {"key": "value"}
-j = {"key": () => true}
+l = {"key": () => true}
+
+"Access"
+h["key"]
+l.key
