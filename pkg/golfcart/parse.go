@@ -14,16 +14,12 @@ type ExpressionList struct {
 type Expression struct {
 	Pos lexer.Position
 
-	Call            *Call            ` @@`
-	Assignment      *Assignment      `| @@`
-	FunctionLiteral *FunctionLiteral `| @@`
-	ListLiteral     *[]Expression    `| "[" ( @@ ("," @@)* ","? )? "]"`
-	ObjectLiteral   *[]ObjectEntry   `| "{" ( @@ ("," @@)* ","? )? "}"`
-	If              *If              `| @@`
-	For             *For             `| @@`
-	While           *While           `| @@`
-	Break           *Break           `| @@`
-	Continue        *Continue        `| @@`
+	Assignment *Assignment `@@`
+	If         *If         `| @@`
+	For        *For        `| @@`
+	While      *While      `| @@`
+	Break      *Break      `| @@`
+	Continue   *Continue   `| @@`
 }
 
 type Break struct {
@@ -57,7 +53,7 @@ type While struct {
 type If struct {
 	Pos lexer.Position
 
-	Init      []*Assignment `"if" ( @@ ("," @@ )* ";" )?`
+	Init      []*Assignment `"if" ( @@ ";" )?`
 	Condition *Expression   `@@`
 	Body      []*Expression `"{" @@* "}"`
 	ElseBody  []*Expression `( "else" "{" @@* "}" )?`
@@ -130,22 +126,23 @@ type Unary struct {
 type Primary struct {
 	Pos lexer.Position
 
-	Ident  string   `@Ident`
-	Number *float64 `| @Float | @Int`
-	// Nilable so that we can check which Primary this is
-	Str           *string     `| @String`
-	Bool          *bool       `| ( @"true" | "false" )`
-	Nil           *bool       `| @"nil"`
-	SubExpression *Expression `| "(" @@ ")"`
+	FunctionLiteral *FunctionLiteral `@@`
+	ListLiteral     *[]Expression    `| "[" ( @@ ("," @@)* ","? )? "]"`
+	ObjectLiteral   *[]ObjectEntry   `| "{" ( @@ ("," @@)* ","? )? "}"`
+	Call            *Call            `| @@`
+	SubExpression   *Expression      `| "(" @@ ")"`
+	Ident           string           `| @Ident`
+	Number          *float64         `| @Float | @Int`
+	Str             *string          `| @String`
+	Bool            *bool            `| ( @"true" | "false" )`
+	Nil             *bool            `| @"nil"`
 }
 
-type Call struct {
+type FunctionLiteral struct {
 	Pos lexer.Position
 
-	Primary    *Primary      `@@ ( "()"`
-	Parameters *[]Expression `  | "(" ( @@ ( "," @@ )* )? ")" `
-	Ident      string        `  | "." @Ident`
-	Brackets   *Expression   `  | "[" @@ "]" )`
+	Parameters []string      `"(" ( @Ident ( "," @Ident )* )? ")"`
+	Body       []*Expression `"=" ">" ( "{" @@* "}" | @@ )`
 }
 
 type ObjectEntry struct {
@@ -155,23 +152,26 @@ type ObjectEntry struct {
 	Value *Expression `@@`
 }
 
-type FunctionLiteral struct {
+type Call struct {
 	Pos lexer.Position
 
-	Parameters []string      `"(" ( @Ident ( "," @Ident )* )? ")"`
-	Body       []*Expression `"=>" ( "{" @@* "}" | @@ )`
+	Ident          *string       `( @Ident`
+	SubExpression  *Expression   `| "(" @@ ")" )`
+	Parameters     *[]Expression `( "(" ( @@ ( "," @@ )* )? ")" `
+	Access         string        `    | "." @Ident`
+	ComputedAccess *Expression   `    | "[" @@ "]" )`
 }
 
 func GenerateAST(source string) (*ExpressionList, error) {
-	var parser = (participle.MustBuild(&ExpressionList{}, participle.UseLookahead(2)))
+	parser := participle.MustBuild(&ExpressionList{}, participle.UseLookahead(2))
 	expressionList := &ExpressionList{}
+
+	// Print grammar
+	// println(parser.String())
 
 	err := parser.ParseString("", source, expressionList)
 	if err != nil {
 		return nil, err
 	}
 	return expressionList, nil
-
-	// Print grammar
-	// println(parser.String())
 }

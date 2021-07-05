@@ -1,0 +1,31 @@
+"Assigning" a = 1
+a = 2
+b = 1
+a + b
+a b
+
+"Functions"
+c = (x, y) => x + y
+c = (x, y) => { x + y }
+c = () => {}
+
+"If"
+if true {1}
+if e = 1; e {2}
+if true {3} else {4}
+d = if true {5} else {6}
+
+"For"
+for i = 0; i < 10; i = i + 1 {
+    7
+}
+
+"While"
+while j = 0; false {
+    8
+}
+
+"Objects"
+g = {}
+h = {"key": "value"}
+j = {"key": () => true}

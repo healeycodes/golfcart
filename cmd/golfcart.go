@@ -2,25 +2,33 @@ package main
 
 import (
 	"fmt"
-	"strings"
+	"io/ioutil"
+	"os"
 
-	"github.com/alecthomas/kong"
 	"github.com/healeycodes/golfcart/pkg/golfcart"
 )
 
 func main() {
-	var cli struct {
-		ExpressionList []string `arg required help:"ExpressionList to parse."`
-	}
+	// var cli struct {
+	// 	ExpressionList []string `arg required help:"ExpressionList to parse."`
+	// }
 
-	ctx := kong.Parse(&cli)
-	ast, err := golfcart.GenerateAST(strings.Join(cli.ExpressionList, " "))
+	// ctx := kong.Parse(&cli)
+	// ast, err := golfcart.GenerateAST(strings.Join(cli.ExpressionList, " "))
 
-	if err != nil {
-		ctx.FatalIfErrorf(err)
-	}
+	// if err != nil {
+	// 	ctx.FatalIfErrorf(err)
+	// }
 
 	// repr.Println(ast)
+
+	file := os.Args[1]
+	b, err := ioutil.ReadFile(file) // just pass the file name
+	if err != nil {
+		fmt.Print(err)
+	}
+
+	ast, err := golfcart.GenerateAST(string(b))
 
 	context := golfcart.Context{}
 	context.Init()

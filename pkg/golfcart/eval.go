@@ -139,6 +139,7 @@ func (functionValue FunctionValue) Eval(args []Value) (Value, error) {
 	var err error
 	result = NilValue{}
 	for _, expression := range functionValue.expressions {
+		println(expression.String())
 		result, err = expression.Eval(functionFrame)
 		if err != nil {
 			return nil, err
@@ -215,6 +216,7 @@ func (functionLiteral FunctionLiteral) Equals(other Value) bool {
 
 func (functionLiteral FunctionLiteral) Eval(frame *StackFrame) (Value, error) {
 	closureFrame := frame.GetChild()
+	panic(1)
 	functionValue := FunctionValue{parameters: functionLiteral.Parameters, frame: closureFrame, expressions: functionLiteral.Body}
 	return functionValue, nil
 }
