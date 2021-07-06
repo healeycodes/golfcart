@@ -155,6 +155,7 @@ func (functionValue FunctionValue) Exec(args []Value) (Value, error) {
 	var err error
 	result = NilValue{}
 	for _, expression := range functionValue.expressions {
+		println(expression.String())
 		result, err = expression.Eval(functionFrame)
 		if err != nil {
 			return nil, err
@@ -405,7 +406,19 @@ func (addition Addition) Eval(frame *StackFrame) (Value, error) {
 		return nil, err
 	}
 
-	// TODO: look up identifiers?
+	if leftId, okLeft := left.(IdentifierValue); okLeft {
+		left, err = frame.Get(leftId)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if rightId, okRight := right.(IdentifierValue); okRight {
+		right, err = frame.Get(rightId)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	leftNum, okLeft := left.(NumberValue)
 	if !okLeft {
