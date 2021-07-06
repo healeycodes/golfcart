@@ -420,6 +420,14 @@ func (addition Addition) Eval(frame *StackFrame) (Value, error) {
 		}
 	}
 
+	leftStr, okLeft := left.(StringValue)
+	rightStr, okRight := right.(StringValue)
+	if addition.Op == "+" && (okLeft && !okRight || okRight && !okLeft) {
+		return nil, errors.New(addition.Multiplication.Pos.String() + " '+' only supported between strings")
+	} else if addition.Op == "+" && (okLeft || okRight) {
+		return StringValue{val: leftStr.val + rightStr.val}, nil
+	}
+
 	leftNum, okLeft := left.(NumberValue)
 	if !okLeft {
 		return nil, errors.New(addition.Multiplication.Pos.String() + " '+' and '-' only supported between numbers")
@@ -454,6 +462,40 @@ func (multiplication Multiplication) Eval(frame *StackFrame) (Value, error) {
 	if multiplication.Op == "" {
 		return left, nil
 	}
+	right, err := multiplication.Next.Eval(frame)
+	if err != nil {
+		return nil, err
+	}
+
+	if leftId, okLeft := left.(IdentifierValue); okLeft {
+		left, err = frame.Get(leftId)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if rightId, okRight := right.(IdentifierValue); okRight {
+		right, err = frame.Get(rightId)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	leftNum, okLeft := left.(NumberValue)
+	if !okLeft {
+		return nil, errors.New(multiplication.Unary.Pos.String() + " '+' and '-' only supported between numbers")
+	}
+	rightNum, okRight := right.(NumberValue)
+	if !okRight {
+		return nil, errors.New(multiplication.Next.Pos.String() + " '+' and '-' only supported between numbers")
+	}
+	if multiplication.Op == "*" {
+		return NumberValue{val: leftNum.val * rightNum.val}, nil
+	}
+	if multiplication.Op == "/" {
+		return NumberValue{val: leftNum.val / rightNum.val}, nil
+	}
+
 	return nil, errors.New("unimplemented Multiplication Eval")
 }
 
