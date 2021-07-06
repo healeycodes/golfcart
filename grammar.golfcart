@@ -1,7 +1,11 @@
-"Assigning" a = 1
-a = 2
-b = 1
+"Assigning"
+a = 1
+a = 2 b = 1
 a + b
+
+a +
+b
+
 a b
 
 "Functions"
@@ -10,7 +14,7 @@ cb = (x) => { x }
 cc = () => {}
 
 "Call"
-c(1, 2)
+ca(1, 2)
 cc()
 
 "If"

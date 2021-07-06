@@ -29,6 +29,10 @@ func main() {
 	}
 
 	ast, err := golfcart.GenerateAST(string(b))
+	if err != nil {
+		println(fmt.Sprintf("%v", err))
+		return
+	}
 
 	context := golfcart.Context{}
 	context.Init()

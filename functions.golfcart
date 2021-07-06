@@ -1,5 +1,13 @@
-one = () => 1
-add = (x, y) => x + y
-add(one(), 2)
+// Closures
+counter = () => {
+    n = 0
+    () => {
+        n = n + 1
+        n
+    }
+}
 
-"a" - "b"
+my_counter = counter()
+my_counter()
+my_counter()
+my_counter()

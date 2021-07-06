@@ -3,6 +3,7 @@ package golfcart
 import (
 	"github.com/alecthomas/participle/v2"
 	"github.com/alecthomas/participle/v2/lexer"
+	"github.com/alecthomas/participle/v2/lexer/stateful"
 )
 
 type ExpressionList struct {
@@ -14,12 +15,13 @@ type ExpressionList struct {
 type Expression struct {
 	Pos lexer.Position
 
-	If         *If         `@@`
-	For        *For        `| @@`
-	While      *While      `| @@`
-	Break      *Break      `| @@`
-	Continue   *Continue   `| @@`
-	Assignment *Assignment `| @@`
+	If                  *If         `@@`
+	For                 *For        `| @@`
+	While               *While      `| @@`
+	Break               *Break      `| @@`
+	Continue            *Continue   `| @@`
+	Assignment          *Assignment `| @@`
+	NativeFunctionValue *NativeFunctionValue
 }
 
 type Break struct {
@@ -158,19 +160,32 @@ type Call struct {
 	Ident          *string       `( @Ident`
 	SubExpression  *Expression   `| "(" @@ ")" )`
 	Parameters     *[]Expression `( "(" ( @@ ( "," @@ )* )? ")" `
-	Access         string        `    | "." @Ident`
+	Access         *string       `    | "." @Ident`
 	ComputedAccess *Expression   `    | "[" @@ "]" )`
 }
 
 var (
-	parser = participle.MustBuild(&ExpressionList{}, participle.UseLookahead(2))
+	_lexer = lexer.Must(stateful.New(stateful.Rules{
+		"Root": {
+			{"comment", `//.*|/\*.*?\*/`, nil},
+			{"whitespace", `[\n\r\t ]+`, nil},
+			{"Int", `[\d]+`, nil},
+			{"Float", `[\d\.\d]+`, nil},
+			{"String", `"([^"]*)"`, nil},
+			{"Ident", `[\w:]+`, nil},
+			{"Punct", `[-,()*/+{};!=:<>]|\[\]`, nil}, // TODO: %, &, |
+		},
+	}))
+	parser = participle.MustBuild(&ExpressionList{}, participle.Lexer(_lexer),
+		participle.Elide("whitespace", "comment"), participle.UseLookahead(2))
 )
+
+func GetGrammer() string {
+	return parser.String()
+}
 
 func GenerateAST(source string) (*ExpressionList, error) {
 	expressionList := &ExpressionList{}
-
-	// Print grammar
-	// println(parser.String())
 
 	err := parser.ParseString("", source, expressionList)
 	if err != nil {

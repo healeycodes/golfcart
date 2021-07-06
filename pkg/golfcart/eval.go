@@ -21,10 +21,20 @@ type StackFrame struct {
 
 func (frame *StackFrame) String() string {
 	s := ""
-	for key, value := range frame.values {
-		s += key + ": " + value.String() + "\n"
+	for true {
+		s += "["
+		for key, value := range frame.values {
+			s += key + ": " + value.String() + ", "
+		}
+		s += "] --> "
+		if parent := frame.parent; parent != nil {
+			frame = parent
+		} else {
+			break
+		}
 	}
-	return s
+
+	return s + "*"
 }
 
 func (frame *StackFrame) GetChild() *StackFrame {
@@ -33,18 +43,37 @@ func (frame *StackFrame) GetChild() *StackFrame {
 }
 
 func (frame *StackFrame) Get(key Value) (Value, error) {
-	value, ok := frame.values[key.String()]
-	if ok {
-		return value, nil
+	for true {
+		value, ok := frame.values[key.String()]
+		if ok {
+			return value, nil
+		}
+		if parent := frame.parent; parent != nil {
+			frame = parent
+		} else {
+			break
+		}
 	}
-
-	// TODO recursive look up frames
 
 	return nil, errors.New("cannot find value for '" + key.String() + "'")
 }
 
 func (frame *StackFrame) Set(key Value, value Value) {
-	frame.values[key.String()] = value
+	currentFrame := frame
+	for true {
+		_, ok := frame.values[key.String()]
+		if ok {
+			frame.values[key.String()] = value
+			return
+		}
+		if parent := frame.parent; parent != nil {
+			frame = parent
+		} else {
+			break
+		}
+	}
+
+	currentFrame.values[key.String()] = value
 }
 
 type Value interface {
@@ -147,16 +176,14 @@ func (functionValue FunctionValue) Exec(args []Value) (Value, error) {
 		// TODO: improve error message (+ line number if pos?)
 		return nil, errors.New("function called with incorrect number of arguments")
 	}
-	functionFrame := functionValue.frame.GetChild()
 	for i, parameter := range functionValue.parameters {
-		functionFrame.Set(IdentifierValue{val: parameter}, args[i])
+		functionValue.frame.Set(IdentifierValue{val: parameter}, args[i])
 	}
 	var result Value
 	var err error
 	result = NilValue{}
 	for _, expression := range functionValue.expressions {
-		println(expression.String())
-		result, err = expression.Eval(functionFrame)
+		result, err = expression.Eval(functionValue.frame)
 		if err != nil {
 			return nil, err
 		}
@@ -257,12 +284,40 @@ func (call Call) Eval(frame *StackFrame) (Value, error) {
 			args[i] = result
 		}
 	}
-	if ident := *call.Ident; ident != "" {
-		value, err := frame.Get(IdentifierValue{val: ident})
+	if ident := call.Ident; ident != nil {
+		value, err := frame.Get(IdentifierValue{val: *ident})
 		if err != nil {
 			return nil, err
 		}
 		if functionValue, ok := value.(FunctionValue); ok {
+			// TODO: pass the cursor location (call.Pos) for better function errors?
+			result, err := functionValue.Exec(args)
+			if err != nil {
+				return nil, err
+			}
+			return result, nil
+		}
+		// If list
+		// If obj
+		// var access string
+		// var computedAccess Value
+		// if call.Access != nil {
+		// 	access = IdentifierValue{val: *call.Access}.String()
+		// }
+		// if call.ComputedAccess != nil {
+		// 	_computedAccess, err := call.ComputedAccess.Eval(frame)
+		// 	if err != nil {
+		// 		return nil, err
+		// 	}
+		// 	computedAccess = _computedAccess
+		// }
+	}
+	if call.SubExpression != nil {
+		result, err := call.SubExpression.Eval(frame)
+		if err != nil {
+			return nil, err
+		}
+		if functionValue, ok := result.(FunctionValue); ok {
 			result, err := functionValue.Exec(args)
 			if err != nil {
 				return nil, err
@@ -559,7 +614,8 @@ func (primary Primary) Eval(frame *StackFrame) (Value, error) {
 		return NumberValue{val: *primary.Number}, nil
 	}
 	if primary.Str != nil {
-		return StringValue{val: *primary.Str}, nil
+		// TODO: Parse strings without including quote `"` marks
+		return StringValue{val: (*primary.Str)[1 : len((*primary.Str))-1]}, nil
 	}
 	if primary.Bool != nil {
 		return BoolValue{val: *primary.Bool}, nil
@@ -568,6 +624,5 @@ func (primary Primary) Eval(frame *StackFrame) (Value, error) {
 		return NilValue{}, nil
 	}
 
-	println(frame.String())
 	panic("unimplemented Primary Eval")
 }
