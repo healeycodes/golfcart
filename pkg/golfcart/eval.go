@@ -628,8 +628,11 @@ func (primary Primary) Eval(frame *StackFrame) (Value, error) {
 		// TODO: Parse strings without including quote `"` marks
 		return StringValue{val: (*primary.Str)[1 : len((*primary.Str))-1]}, nil
 	}
-	if primary.Bool != nil {
-		return BoolValue{val: *primary.Bool}, nil
+	if primary.True != nil {
+		return BoolValue{val: true}, nil
+	}
+	if primary.False != nil {
+		return BoolValue{val: false}, nil
 	}
 	if primary.Nil != nil {
 		return NilValue{}, nil
