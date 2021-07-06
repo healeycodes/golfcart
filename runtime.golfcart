@@ -1,0 +1,16 @@
+// Type casts
+a = "1"
+num(a)
+num(("2"))
+num(1)
+
+b = 1
+str(1)
+str("hi!")
+
+c = true
+str(c)
+
+// Logging
+log(a)
+log(a, b)

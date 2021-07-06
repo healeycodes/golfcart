@@ -36,6 +36,7 @@ func main() {
 
 	context := golfcart.Context{}
 	context.Init()
+	golfcart.InjectRuntimeFunctions(&context)
 
 	result, err := ast.Eval(&context)
 	if err != nil {
@@ -43,6 +44,5 @@ func main() {
 		return
 	}
 
-	fmt.Printf("%T\n", result)
 	println(result.String())
 }

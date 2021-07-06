@@ -131,13 +131,13 @@ type Primary struct {
 	FunctionLiteral *FunctionLiteral `@@`
 	ListLiteral     *[]Expression    `| "[" ( @@ ("," @@)* ","? )? "]"`
 	ObjectLiteral   *[]ObjectEntry   `| "{" ( @@ ("," @@)* ","? )? "}"`
-	Call            *Call            `| @@`
 	SubExpression   *Expression      `| "(" @@ ")"`
-	Ident           string           `| @Ident`
+	Call            *Call            `| @@`
 	Number          *float64         `| @Float | @Int`
 	Str             *string          `| @String`
 	Bool            *bool            `| ( @"true" | "false" )`
 	Nil             *bool            `| @"nil"`
+	Ident           string           `| @Ident`
 }
 
 type FunctionLiteral struct {

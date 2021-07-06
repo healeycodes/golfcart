@@ -11,3 +11,5 @@ my_counter = counter()
 my_counter()
 my_counter()
 my_counter()
+
+log("hi!")

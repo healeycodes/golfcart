@@ -289,6 +289,14 @@ func (call Call) Eval(frame *StackFrame) (Value, error) {
 		if err != nil {
 			return nil, err
 		}
+		if nativeFunctionValue, ok := value.(NativeFunctionValue); ok {
+			// TODO: pass the cursor location (call.Pos) for better function errors?
+			result, err := nativeFunctionValue.Exec(args)
+			if err != nil {
+				return nil, err
+			}
+			return result, nil
+		}
 		if functionValue, ok := value.(FunctionValue); ok {
 			// TODO: pass the cursor location (call.Pos) for better function errors?
 			result, err := functionValue.Exec(args)
@@ -602,6 +610,9 @@ func (primary Primary) Equals(other Value) bool {
 func (primary Primary) Eval(frame *StackFrame) (Value, error) {
 	if functionLiteral := primary.FunctionLiteral; functionLiteral != nil {
 		return functionLiteral.Eval(frame)
+	}
+	if subExpression := primary.SubExpression; subExpression != nil {
+		return subExpression.Eval(frame)
 	}
 	if call := primary.Call; call != nil {
 		return call.Eval(frame)
