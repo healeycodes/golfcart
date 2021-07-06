@@ -8,6 +8,7 @@ import (
 )
 
 func InjectRuntimeFunctions(context *Context) {
+	context.stackFrame.values["assert"] = NativeFunctionValue{name: "assert"}
 	context.stackFrame.values["log"] = NativeFunctionValue{name: "log"}
 	context.stackFrame.values["str"] = NativeFunctionValue{name: "str"}
 	context.stackFrame.values["num"] = NativeFunctionValue{name: "num"}
@@ -31,9 +32,21 @@ func (nativeFunctionValue NativeFunctionValue) Equals(other Value) bool {
 
 func (nativeFunctionValue NativeFunctionValue) Exec(args []Value) (Value, error) {
 	switch nativeFunctionValue.name {
+	case "assert":
+		if len(args) != 1 {
+			return nil, errors.New("assert() expects 1 argument of type bool")
+		}
+		boolValue, okBool := args[0].(BoolValue)
+		if !okBool {
+			return nil, errors.New("assert() expects 1 argument of type bool")
+		}
+		if boolValue.val == false {
+			return nil, errors.New("assert failed!")
+		}
+		return NilValue{}, nil
 	case "str":
 		if len(args) != 1 {
-			return nil, errors.New("str() expects 1 argument")
+			return nil, errors.New("str() expects 1 argument of type num or bool")
 		}
 		value := args[0]
 		if strValue, okStr := value.(StringValue); okStr {
