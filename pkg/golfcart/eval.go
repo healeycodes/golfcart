@@ -69,12 +69,20 @@ type IdentifierValue struct {
 	val string
 }
 
-func (identifier IdentifierValue) String() string {
-	return identifier.val
+func (identifierValue IdentifierValue) String() string {
+	return identifierValue.val
 }
 
-func (identifier IdentifierValue) Equals(other Value) bool {
+func (identifierValue IdentifierValue) Equals(other Value) bool {
 	panic("identifiers shouldn't be compared")
+}
+
+func (identifierValue IdentifierValue) Eval(frame *StackFrame) (Value, error) {
+	value, err := frame.Get(identifierValue)
+	if err != nil {
+		return nil, err
+	}
+	return value, nil
 }
 
 type NumberValue struct {
@@ -134,7 +142,7 @@ func (functionValue FunctionValue) Equals(other Value) bool {
 	return false
 }
 
-func (functionValue FunctionValue) Eval(args []Value) (Value, error) {
+func (functionValue FunctionValue) Exec(args []Value) (Value, error) {
 	if len(args) != len(functionValue.parameters) {
 		// TODO: improve error message (+ line number if pos?)
 		return nil, errors.New("function called with incorrect number of arguments")
@@ -147,7 +155,6 @@ func (functionValue FunctionValue) Eval(args []Value) (Value, error) {
 	var err error
 	result = NilValue{}
 	for _, expression := range functionValue.expressions {
-		println(expression.String())
 		result, err = expression.Eval(functionFrame)
 		if err != nil {
 			return nil, err
@@ -242,7 +249,11 @@ func (call Call) Eval(frame *StackFrame) (Value, error) {
 	if parameters := call.Parameters; parameters != nil {
 		args = make([]Value, len(*parameters))
 		for i, parameter := range *parameters {
-			args[i] = parameter.Eval(frame)
+			result, err := parameter.Eval(frame)
+			if err != nil {
+				return nil, err
+			}
+			args[i] = result
 		}
 	}
 	if ident := *call.Ident; ident != "" {
@@ -250,15 +261,15 @@ func (call Call) Eval(frame *StackFrame) (Value, error) {
 		if err != nil {
 			return nil, err
 		}
-		if functionValue, ok := value.(FunctionValue) {
-			argsFrame := frame.GetChild()
-			for _, arg := range args {
-				argsFrame.Set()
+		if functionValue, ok := value.(FunctionValue); ok {
+			result, err := functionValue.Exec(args)
+			if err != nil {
+				return nil, err
 			}
+			return result, nil
 		}
-		// TODO: check value is callable
 	}
-	return functionValue, nil
+	panic("unimplemented Call Eval")
 }
 
 func (assignment Assignment) String() string {
@@ -281,8 +292,11 @@ func (assignment Assignment) Eval(frame *StackFrame) (Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	frame.Set(left, right)
-	return NilValue{}, nil
+	if assignment.Op == "=" {
+		frame.Set(left, right)
+		return NilValue{}, nil
+	}
+	panic("unimplemented Assignment Eval")
 }
 
 func (logicAnd LogicAnd) String() string {
@@ -301,11 +315,7 @@ func (logicAnd LogicAnd) Eval(frame *StackFrame) (Value, error) {
 	if logicAnd.Op == "" {
 		return left, nil
 	}
-	// right, err := logicAnd.Next.Eval(frame)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	return nil, errors.New("unimplemented LogicAnd Eval")
+	panic("unimplemented LogicAnd Eval")
 }
 
 func (logicOr LogicOr) String() string {
@@ -390,7 +400,29 @@ func (addition Addition) Eval(frame *StackFrame) (Value, error) {
 	if addition.Op == "" {
 		return left, nil
 	}
-	return nil, errors.New("unimplemented Addition Eval")
+	right, err := addition.Next.Eval(frame)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: look up identifiers?
+
+	leftNum, okLeft := left.(NumberValue)
+	if !okLeft {
+		return nil, errors.New(addition.Multiplication.Pos.String() + " '+' and '-' only supported between numbers")
+	}
+	rightNum, okRight := right.(NumberValue)
+	if !okRight {
+		return nil, errors.New(addition.Next.Pos.String() + " '+' and '-' only supported between numbers")
+	}
+	if addition.Op == "+" {
+		return NumberValue{val: leftNum.val + rightNum.val}, nil
+	}
+	if addition.Op == "-" {
+		return NumberValue{val: leftNum.val - rightNum.val}, nil
+	}
+
+	panic("unimplemented Addition Eval")
 }
 
 func (multiplication Multiplication) String() string {
