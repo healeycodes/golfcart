@@ -130,15 +130,15 @@ type Primary struct {
 
 	FunctionLiteral *FunctionLiteral `@@`
 	ListLiteral     *ListLiteral     `| @@`
-	DictLiteral     *DictLiteral
-	SubExpression   *Expression `| "(" @@ ")"`
-	Call            *Call       `| @@`
-	Number          *float64    `| @Float | @Int`
-	Str             *string     `| @String`
-	True            *bool       `| @"true"`
-	False           *bool       `| @"false"`
-	Nil             *bool       `| @"nil"`
-	Ident           string      `| @Ident`
+	DictLiteral     *DictLiteral     `| @@`
+	SubExpression   *Expression      `| "(" @@ ")"`
+	Call            *Call            `| @@`
+	Number          *float64         `| @Float | @Int`
+	Str             *string          `| @String`
+	True            *bool            `| @"true"`
+	False           *bool            `| @"false"`
+	Nil             *bool            `| @"nil"`
+	Ident           string           `| @Ident`
 }
 
 type FunctionLiteral struct {

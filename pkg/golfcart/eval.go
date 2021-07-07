@@ -209,12 +209,20 @@ func (listValue ListValue) Equals(other Value) bool {
 }
 
 type DictValue struct {
-	entries map[string][]DictEntryValue
+	entries map[string]Value
 }
 
-type DictEntryValue struct {
-	key   string
-	value Value
+func (dictValue *DictValue) Get(key Value) (Value, error) {
+	value, ok := dictValue.entries[key.String()]
+	if ok {
+		return value, nil
+	}
+
+	return nil, errors.New("cannot find value for '" + key.String() + "'")
+}
+
+func (dictValue *DictValue) Set(key Value, value Value) {
+	dictValue.entries[key.String()] = value
 }
 
 func (dictValue DictValue) String() string {
@@ -309,8 +317,23 @@ func (dictLiteral DictLiteral) Equals(other Value) bool {
 }
 
 func (dictLiteral DictLiteral) Eval(frame *StackFrame) (Value, error) {
-	// TODO: create DictEntryValues
-	return nil, nil
+	entries := make(map[string]Value)
+	dictValue := DictValue{entries: entries}
+	if *dictLiteral.DictEntry != nil {
+		for _, dictEntry := range *dictLiteral.DictEntry {
+			key, err := dictEntry.Key.Eval(frame)
+			if err != nil {
+				return nil, err
+			}
+			value, err := dictEntry.Value.Eval(frame)
+			if err != nil {
+				return nil, err
+			}
+			dictValue.Set(key, value)
+		}
+	}
+
+	return dictValue, nil
 }
 
 func (listLiteral ListLiteral) String() string {
@@ -349,6 +372,8 @@ func (call Call) Equals(other Value) bool {
 }
 
 func (call Call) Eval(frame *StackFrame) (Value, error) {
+	// TODO: pass the cursor location (call.Pos) for better errors?
+
 	var args []Value
 	if parameters := call.Parameters; parameters != nil {
 		args = make([]Value, len(*parameters))
@@ -360,56 +385,102 @@ func (call Call) Eval(frame *StackFrame) (Value, error) {
 			args[i] = result
 		}
 	}
+
+	var access Value
+	if call.Access != nil {
+		access = IdentifierValue{val: *call.Access}
+	} else if call.ComputedAccess != nil {
+		value, err := call.ComputedAccess.Eval(frame)
+		if err != nil {
+			return nil, err
+		}
+		access = value
+	}
+
 	if ident := call.Ident; ident != nil {
 		value, err := frame.Get(IdentifierValue{val: *ident})
 		if err != nil {
 			return nil, err
 		}
 		if functionValue, okFunc := value.(FunctionValue); okFunc {
-			// TODO: pass the cursor location (call.Pos) for better function errors?
-			result, err := functionValue.Exec(args)
+			value, err := functionValue.Exec(args)
 			if err != nil {
 				return nil, err
 			}
-			return result, nil
+			return value, nil
 		}
 		if nativeFunctionValue, okFunc := value.(NativeFunctionValue); okFunc {
-			// TODO: pass the cursor location (call.Pos) for better function errors?
-			result, err := nativeFunctionValue.Exec(args)
+			value, err := nativeFunctionValue.Exec(args)
 			if err != nil {
 				return nil, err
 			}
-			return result, nil
+			return value, nil
 		}
-		// If list
-		// If obj
-		// var access string
-		// var computedAccess Value
-		// if call.Access != nil {
-		// 	access = IdentifierValue{val: *call.Access}.String()
-		// }
-		// if call.ComputedAccess != nil {
-		// 	_computedAccess, err := call.ComputedAccess.Eval(frame)
-		// 	if err != nil {
-		// 		return nil, err
-		// 	}
-		// 	computedAccess = _computedAccess
-		// }
+		if listValue, okList := value.(ListValue); okList {
+			return listAccess(listValue, args)
+		}
+		if dictValue, okDict := value.(DictValue); okDict {
+			return dictAccess(dictValue, args)
+		}
 	}
+	// ((x) => x + 1)(10)
 	if call.SubExpression != nil {
-		result, err := call.SubExpression.Eval(frame)
+		value, err := call.SubExpression.Eval(frame)
 		if err != nil {
 			return nil, err
 		}
-		if functionValue, ok := result.(FunctionValue); ok {
-			result, err := functionValue.Exec(args)
+		if functionValue, okFunc := value.(FunctionValue); okFunc {
+			value, err := functionValue.Exec(args)
 			if err != nil {
 				return nil, err
 			}
-			return result, nil
+			return value, nil
+		}
+		if nativeFunctionValue, okFunc := value.(NativeFunctionValue); okFunc {
+			value, err := nativeFunctionValue.Exec(args)
+			if err != nil {
+				return nil, err
+			}
+			return value, nil
+		}
+		if listValue, okList := value.(ListValue); okList {
+			return listAccess(listValue, args)
+		}
+		if dictValue, okDict := value.(DictValue); okDict {
+			return dictAccess(dictValue, args)
 		}
 	}
 	panic("unimplemented Call Eval")
+}
+
+func listAccess(listValue ListValue, args []Value) (Value, error) {
+	if len(args) != 1 {
+		return nil, errors.New("Too many arguments used for list access")
+	}
+	if numValue, okNum := args[0].(NumberValue); okNum {
+		index := int(numValue.val)
+		if index < 0 || index > len(listValue.items)-1 {
+			return nil, errors.New(fmt.Sprint("List access out of bounds: %v", index))
+		}
+		return listValue.items[index], nil
+	}
+
+	value, err := golfcartType(args)
+	if err != nil {
+		return nil, err
+	}
+	return nil, errors.New("List access expects 1 argument of type number: not " + value.String())
+}
+
+func dictAccess(dictValue DictValue, args []Value) (Value, error) {
+	if len(args) != 1 {
+		return nil, errors.New("Too many arguments used for dict access")
+	}
+	value, err := dictValue.Get(args[0])
+	if err != nil {
+		return nil, err
+	}
+	return value, nil
 }
 
 func (assignment Assignment) String() string {
@@ -695,6 +766,9 @@ func (primary Primary) Eval(frame *StackFrame) (Value, error) {
 	}
 	if listLiteral := primary.ListLiteral; listLiteral != nil {
 		return listLiteral.Eval(frame)
+	}
+	if dictLiteral := primary.DictLiteral; dictLiteral != nil {
+		return dictLiteral.Eval(frame)
 	}
 	if subExpression := primary.SubExpression; subExpression != nil {
 		return subExpression.Eval(frame)

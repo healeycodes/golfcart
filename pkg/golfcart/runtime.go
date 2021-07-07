@@ -10,6 +10,7 @@ import (
 func InjectRuntime(context *Context) {
 	context.stackFrame.values["assert"] = NativeFunctionValue{name: "assert", Exec: golfcartAssert}
 	context.stackFrame.values["log"] = NativeFunctionValue{name: "log", Exec: golfcartLog}
+	context.stackFrame.values["type"] = NativeFunctionValue{name: "type", Exec: golfcartType}
 	context.stackFrame.values["str"] = NativeFunctionValue{name: "str", Exec: golfcartStr}
 	context.stackFrame.values["num"] = NativeFunctionValue{name: "num", Exec: golfcartNum}
 }
@@ -89,4 +90,29 @@ func golfcartNum(args []Value) (Value, error) {
 		return nil, errors.New("num() couldn't convert " + strValue.val + " to num")
 	}
 	return NumberValue{val: f}, nil
+}
+
+func golfcartType(args []Value) (Value, error) {
+	if len(args) != 1 {
+		return nil, errors.New("type() expects 1 argument")
+	}
+	value := args[0]
+	switch value.(type) {
+	case StringValue:
+		return StringValue{val: "string"}, nil
+	case NumberValue:
+		return StringValue{val: "number"}, nil
+	case BoolValue:
+		return StringValue{val: "bool"}, nil
+	case FunctionValue, NativeFunctionValue:
+		return StringValue{val: "function"}, nil
+	case ListValue:
+		return StringValue{val: "list"}, nil
+	case DictValue:
+		return StringValue{val: "dict"}, nil
+	case NilValue:
+		return StringValue{val: "nil"}, nil
+	}
+
+	panic("unimplemented golfcartType")
 }
