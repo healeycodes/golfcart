@@ -17,7 +17,6 @@ func InjectRuntime(context *Context) {
 
 type NativeFunctionValue struct {
 	name string
-	// TODO: improve error message (+ line number if pos?)
 	Exec func([]Value) (Value, error)
 }
 
