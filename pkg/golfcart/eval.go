@@ -179,8 +179,8 @@ func (functionValue FunctionValue) Exec(args []Value) (Value, error) {
 		functionValue.frame.Set(IdentifierValue{val: parameter}, args[i])
 	}
 	var result Value
-	var err error
 	result = NilValue{}
+	var err error
 	for _, expression := range functionValue.expressions {
 		result, err = expression.Eval(functionValue.frame)
 		if err != nil {
@@ -246,20 +246,17 @@ func (exprList ExpressionList) Equals(_ Value) (bool, error) {
 }
 
 func (exprList ExpressionList) Eval(context *Context) (Value, error) {
-	results := make([]Value, 0)
+	var result Value
+	result = NilValue{}
+	var err error
 	for _, node := range exprList.Expressions {
-		result, err := node.Eval(&context.stackFrame)
+		result, err = node.Eval(&context.stackFrame)
 		if err != nil {
 			return nil, err
 		}
-		results = append(results, result)
 	}
 
-	if len(results) == 0 {
-		return NilValue{}, nil
-	}
-
-	return results[len(results)-1], nil
+	return result, nil
 }
 
 func (expr Expression) String() string {
@@ -267,7 +264,7 @@ func (expr Expression) String() string {
 }
 
 func (expr Expression) Equals(other Value) (bool, error) {
-	return expr == other, nil
+	return false, nil
 }
 
 func (expr Expression) Eval(frame *StackFrame) (Value, error) {
@@ -286,6 +283,56 @@ func (expr Expression) Eval(frame *StackFrame) (Value, error) {
 		return result, nil
 	}
 	panic("unimplemented Expression Eval")
+}
+
+func (ifLiteral IfLiteral) String() string {
+	return "ifLiteral"
+}
+
+func (ifLiteral IfLiteral) Equals(other Value) (bool, error) {
+	return false, nil
+}
+
+func (ifLiteral IfLiteral) Eval(frame *StackFrame) (Value, error) {
+	ifFrame := frame.GetChild()
+	if ifLiteral.Init != nil {
+		for _, assignExpr := range ifLiteral.Init {
+			_, err := (*assignExpr).Eval(ifFrame)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+	condition, err := ifLiteral.Condition.Eval(frame)
+	if err != nil {
+		return nil, err
+	}
+	var result Value
+	result = NilValue{}
+	if boolValue, okBool := condition.(BoolValue); okBool {
+		var err error
+		if boolValue.val {
+			for _, expr := range ifLiteral.IfBody {
+				result, err = (*expr).Eval(ifFrame)
+				if err != nil {
+					return nil, err
+				}
+			}
+			return result, nil
+		} else if ifLiteral.ElseBody != nil {
+			for _, expr := range ifLiteral.ElseBody {
+				result, err = (*expr).Eval(ifFrame)
+				if err != nil {
+					return nil, err
+				}
+			}
+			return result, nil
+		}
+	} else {
+		return nil, errors.New("if expression conditional should evaluate to true or false")
+	}
+
+	return result, nil
 }
 
 func (functionLiteral FunctionLiteral) String() string {
@@ -771,6 +818,9 @@ func (primary Primary) String() string {
 }
 
 func (primary Primary) Eval(frame *StackFrame) (Value, error) {
+	if ifLiteral := primary.IfLiteral; ifLiteral != nil {
+		return ifLiteral.Eval(frame)
+	}
 	if functionLiteral := primary.FunctionLiteral; functionLiteral != nil {
 		return functionLiteral.Eval(frame)
 	}

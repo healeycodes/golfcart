@@ -1,0 +1,2 @@
+//        . Should evaluate to true or false  
+assert(if 1 {} == nil)

@@ -1,0 +1,27 @@
+assert(if true {} == nil)
+assert(if false {} == nil)
+
+a = if true {
+    3
+}
+assert(a == 3)
+
+a = if true {
+    1
+} else {
+    2
+}
+assert(a == 1)
+
+a = if false {
+    1
+} else {
+    2
+}
+assert(a == 2)
+
+a = if a = 1; a == 1 {
+    assert(a == 1)
+    4
+}
+assert(a == 4)

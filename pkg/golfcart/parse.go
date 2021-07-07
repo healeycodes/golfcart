@@ -15,8 +15,7 @@ type ExpressionList struct {
 type Expression struct {
 	Pos lexer.Position
 
-	If                  *If         `@@`
-	For                 *For        `| @@`
+	For                 *For        `@@`
 	While               *While      `| @@`
 	Break               *Break      `| @@`
 	Continue            *Continue   `| @@`
@@ -50,15 +49,6 @@ type While struct {
 
 	Condition *Expression   `"while" @@`
 	Body      []*Expression `"{" @@* "}"`
-}
-
-type If struct {
-	Pos lexer.Position
-
-	Init      []*Assignment `"if" ( @@ ";" )?`
-	Condition *Expression   `@@`
-	IfBody    []*Expression `"{" @@* "}"`
-	ElseBody  []*Expression `( "else" "{" @@* "}" )?`
 }
 
 type Assignment struct {
@@ -128,7 +118,8 @@ type Unary struct {
 type Primary struct {
 	Pos lexer.Position
 
-	FunctionLiteral *FunctionLiteral `@@`
+	IfLiteral       *IfLiteral       `@@`
+	FunctionLiteral *FunctionLiteral `| @@`
 	ListLiteral     *ListLiteral     `| @@`
 	DictLiteral     *DictLiteral     `| @@`
 	SubExpression   *Expression      `| "(" @@ ")"`
@@ -139,6 +130,15 @@ type Primary struct {
 	False           *bool            `| @"false"`
 	Nil             *bool            `| @"nil"`
 	Ident           *string          `| @Ident`
+}
+
+type IfLiteral struct {
+	Pos lexer.Position
+
+	Init      []*Assignment `"if" ( @@ ";" )?`
+	Condition *Expression   `@@`
+	IfBody    []*Expression `"{" @@* "}"`
+	ElseBody  []*Expression `( "else" "{" @@* "}" )?`
 }
 
 type FunctionLiteral struct {
@@ -205,5 +205,6 @@ func GenerateAST(source string) (*ExpressionList, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return expressionList, nil
 }
