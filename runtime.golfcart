@@ -17,5 +17,8 @@ str(c)
 // Logging
 log(a)
 log(a, b)
-
 log(false)
+
+// Stringing native function names
+logger = log
+assert(str(logger) == "log function")

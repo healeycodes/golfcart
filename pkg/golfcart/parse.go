@@ -129,7 +129,7 @@ type Primary struct {
 	Pos lexer.Position
 
 	FunctionLiteral *FunctionLiteral `@@`
-	ListLiteral     *[]Expression    `| "[" ( @@ ("," @@)* ","? )? "]"`
+	ListLiteral     *ListLiteral     `| @@`
 	ObjectLiteral   *[]ObjectEntry   `| "{" ( @@ ("," @@)* ","? )? "}"`
 	SubExpression   *Expression      `| "(" @@ ")"`
 	Call            *Call            `| @@`
@@ -146,6 +146,12 @@ type FunctionLiteral struct {
 
 	Parameters []string      `"(" ( @Ident ( "," @Ident )* )? ")"`
 	Body       []*Expression `"=" ">" ( "{" @@* "}" | @@ )`
+}
+
+type ListLiteral struct {
+	Pos lexer.Position
+
+	Expressions *[]Expression `"[" ( @@ ( "," @@ )* )? "]"`
 }
 
 type ObjectEntry struct {
@@ -174,7 +180,7 @@ var (
 			{"Float", `[\d\.\d]+`, nil},
 			{"String", `"([^"]*)"`, nil},
 			{"Ident", `[\w:]+`, nil},
-			{"Punct", `[-,()*/+{};!=:<>]|\[\]`, nil}, // TODO: %, &, |
+			{"Punct", `[-[!*()+_={}\|:;"<,>./]|]`, nil},
 		},
 	}))
 	parser = participle.MustBuild(&ExpressionList{}, participle.Lexer(_lexer),

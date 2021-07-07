@@ -163,11 +163,11 @@ type FunctionValue struct {
 }
 
 func (functionValue FunctionValue) String() string {
-	return "FunctionValue"
+	return "function"
 }
 
 func (functionValue FunctionValue) Equals(other Value) bool {
-	// TODO: should function values be comparable?
+	// TODO: make function values comparable
 	return false
 }
 
@@ -189,6 +189,23 @@ func (functionValue FunctionValue) Exec(args []Value) (Value, error) {
 		}
 	}
 	return result, nil
+}
+
+type ListValue struct {
+	items []Value
+}
+
+func (listValue ListValue) String() string {
+	s := ""
+	for _, item := range listValue.items {
+		s += item.String() + " "
+	}
+	return "[ " + s + "]"
+}
+
+func (listValue ListValue) Equals(other Value) bool {
+	// TODO: make listValues values comparable
+	return false
 }
 
 // --
@@ -253,14 +270,36 @@ func (functionLiteral FunctionLiteral) String() string {
 }
 
 func (functionLiteral FunctionLiteral) Equals(other Value) bool {
-	// TODO: should function literals be comparable?
-	return false
+	return functionLiteral.Pos == functionLiteral.Pos
 }
 
 func (functionLiteral FunctionLiteral) Eval(frame *StackFrame) (Value, error) {
 	closureFrame := frame.GetChild()
 	functionValue := FunctionValue{parameters: functionLiteral.Parameters, frame: closureFrame, expressions: functionLiteral.Body}
 	return functionValue, nil
+}
+
+func (listLiteral ListLiteral) String() string {
+	return "listLiteral"
+}
+
+func (listLiteral ListLiteral) Equals(other Value) bool {
+	return listLiteral.Pos == listLiteral.Pos
+}
+
+func (listLiteral ListLiteral) Eval(frame *StackFrame) (Value, error) {
+	values := make([]Value, 0)
+	if listLiteral.Expressions != nil {
+		for _, expression := range *listLiteral.Expressions {
+			result, err := expression.Eval(frame)
+			if err != nil {
+				return nil, err
+			}
+			values = append(values, result)
+		}
+		return ListValue{items: values}, nil
+	}
+	return ListValue{items: values}, nil
 }
 
 func (call Call) String() string {
@@ -289,17 +328,17 @@ func (call Call) Eval(frame *StackFrame) (Value, error) {
 		if err != nil {
 			return nil, err
 		}
-		if nativeFunctionValue, ok := value.(NativeFunctionValue); ok {
+		if functionValue, okFunc := value.(FunctionValue); okFunc {
 			// TODO: pass the cursor location (call.Pos) for better function errors?
-			result, err := nativeFunctionValue.Exec(args)
+			result, err := functionValue.Exec(args)
 			if err != nil {
 				return nil, err
 			}
 			return result, nil
 		}
-		if functionValue, ok := value.(FunctionValue); ok {
+		if nativeFunctionValue, okFunc := value.(NativeFunctionValue); okFunc {
 			// TODO: pass the cursor location (call.Pos) for better function errors?
-			result, err := functionValue.Exec(args)
+			result, err := nativeFunctionValue.Exec(args)
 			if err != nil {
 				return nil, err
 			}
@@ -357,6 +396,12 @@ func (assignment Assignment) Eval(frame *StackFrame) (Value, error) {
 		return nil, err
 	}
 	if assignment.Op == "=" {
+		if idValue, okId := right.(IdentifierValue); okId {
+			right, err = frame.Get(idValue)
+			if err != nil {
+				return nil, err
+			}
+		}
 		frame.Set(left, right)
 		return NilValue{}, nil
 	}
@@ -610,6 +655,9 @@ func (primary Primary) Equals(other Value) bool {
 func (primary Primary) Eval(frame *StackFrame) (Value, error) {
 	if functionLiteral := primary.FunctionLiteral; functionLiteral != nil {
 		return functionLiteral.Eval(frame)
+	}
+	if listLiteral := primary.ListLiteral; listLiteral != nil {
+		return listLiteral.Eval(frame)
 	}
 	if subExpression := primary.SubExpression; subExpression != nil {
 		return subExpression.Eval(frame)
