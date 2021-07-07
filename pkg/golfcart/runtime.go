@@ -25,8 +25,8 @@ func (nativeFunctionValue NativeFunctionValue) String() string {
 	return nativeFunctionValue.name + " function"
 }
 
-func (nativeFunctionValue NativeFunctionValue) Equals(other Value) bool {
-	return nativeFunctionValue.name == nativeFunctionValue.name
+func (nativeFunctionValue NativeFunctionValue) Equals(other Value) (bool, error) {
+	return nativeFunctionValue.name == nativeFunctionValue.name, nil
 }
 
 func golfcartAssert(args []Value) (Value, error) {

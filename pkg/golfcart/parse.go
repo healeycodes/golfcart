@@ -27,13 +27,13 @@ type Expression struct {
 type Break struct {
 	Pos lexer.Position
 
-	Break string `"break"`
+	Break *string `"break"`
 }
 
 type Continue struct {
 	Pos lexer.Position
 
-	Continue string `"continue"`
+	Continue *string `"continue"`
 }
 
 type For struct {
@@ -73,48 +73,48 @@ type LogicAnd struct {
 	Pos lexer.Position
 
 	LogicOr *LogicOr  `@@`
-	Op      string    `[ @( "and" )`
-	Next    *LogicAnd `  @@ ]`
+	Op      string    `( @( "and" )`
+	Next    *LogicAnd `  @@ )?`
 }
 
 type LogicOr struct {
 	Pos lexer.Position
 
 	Equality *Equality `@@`
-	Op       string    `[ @( "or" )`
-	Next     *LogicOr  `  @@ ]`
+	Op       string    `( @( "or" )`
+	Next     *LogicOr  `  @@ )?`
 }
 
 type Equality struct {
 	Pos lexer.Position
 
 	Comparison *Comparison `@@`
-	Op         string      `[ @( "!" "=" | "=" "=" )`
-	Next       *Equality   `  @@ ]`
+	Op         string      `( @( "!" "=" | "=" "=" )`
+	Next       *Equality   `  @@ )?`
 }
 
 type Comparison struct {
 	Pos lexer.Position
 
 	Addition *Addition   `@@`
-	Op       string      `[ @( ">" "=" | ">" | "<" "=" | "<" )`
-	Next     *Comparison `  @@ ]`
+	Op       string      `( @( ">" "=" | ">" | "<" "=" | "<" )`
+	Next     *Comparison `  @@ )?`
 }
 
 type Addition struct {
 	Pos lexer.Position
 
 	Multiplication *Multiplication `@@`
-	Op             string          `[ @( "-" | "+" )`
-	Next           *Addition       `  @@ ]`
+	Op             string          `( @( "-" | "+" )`
+	Next           *Addition       `  @@ )?`
 }
 
 type Multiplication struct {
 	Pos lexer.Position
 
 	Unary *Unary          `@@`
-	Op    string          `[ @( "/" | "*" | "%")`
-	Next  *Multiplication `  @@ ]`
+	Op    string          `( @( "/" | "*")`
+	Next  *Multiplication `  @@ )?`
 }
 
 type Unary struct {
@@ -138,7 +138,7 @@ type Primary struct {
 	True            *bool            `| @"true"`
 	False           *bool            `| @"false"`
 	Nil             *bool            `| @"nil"`
-	Ident           string           `| @Ident`
+	Ident           *string          `| @Ident`
 }
 
 type FunctionLiteral struct {
@@ -163,7 +163,8 @@ type DictLiteral struct {
 type DictEntry struct {
 	Pos lexer.Position
 
-	Key   *Expression `@@ ":"`
+	Ident *string     `( @Ident`
+	Key   *Expression `| @@ ) ":" `
 	Value *Expression `@@`
 }
 
@@ -185,7 +186,7 @@ var (
 			{"Int", `[\d]+`, nil},
 			{"Float", `[\d\.\d]+`, nil},
 			{"String", `"([^"]*)"`, nil},
-			{"Ident", `[\w:]+`, nil},
+			{"Ident", `[\w]+`, nil},
 			{"Punct", `[-[!*()+_={}\|:;"<,>./]|]`, nil},
 		},
 	}))

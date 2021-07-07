@@ -1,7 +1,11 @@
 a = {"a": 1}
 assert(a["a"] == 1)
 
+a = {a: 1}
+assert(a["a"] == 1)
+
 c = 2
 a = {"a": c}
-b = a
+b = a["a"]
+log(type(b))
 assert(b == 2)
