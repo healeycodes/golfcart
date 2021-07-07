@@ -17,12 +17,11 @@ func TestGenerateAST(t *testing.T) {
 func TestEval(t *testing.T) {
 	program := "a = 1"
 
-	// Covered by TestGenerateAST
 	ast, _ := golfcart.GenerateAST(program)
 
 	context := golfcart.Context{}
 	context.Init()
-	golfcart.InjectRuntimeFunctions(&context)
+	golfcart.InjectRuntime(&context)
 
 	_, err := ast.Eval(&context)
 	if err != nil {

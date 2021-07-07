@@ -130,15 +130,15 @@ type Primary struct {
 
 	FunctionLiteral *FunctionLiteral `@@`
 	ListLiteral     *ListLiteral     `| @@`
-	ObjectLiteral   *[]ObjectEntry   `| "{" ( @@ ("," @@)* ","? )? "}"`
-	SubExpression   *Expression      `| "(" @@ ")"`
-	Call            *Call            `| @@`
-	Number          *float64         `| @Float | @Int`
-	Str             *string          `| @String`
-	True            *bool            `| @"true"`
-	False           *bool            `| @"false"`
-	Nil             *bool            `| @"nil"`
-	Ident           string           `| @Ident`
+	DictLiteral     *DictLiteral
+	SubExpression   *Expression `| "(" @@ ")"`
+	Call            *Call       `| @@`
+	Number          *float64    `| @Float | @Int`
+	Str             *string     `| @String`
+	True            *bool       `| @"true"`
+	False           *bool       `| @"false"`
+	Nil             *bool       `| @"nil"`
+	Ident           string      `| @Ident`
 }
 
 type FunctionLiteral struct {
@@ -154,7 +154,13 @@ type ListLiteral struct {
 	Expressions *[]Expression `"[" ( @@ ( "," @@ )* )? "]"`
 }
 
-type ObjectEntry struct {
+type DictLiteral struct {
+	Pos lexer.Position
+
+	DictEntry *[]DictEntry `"{" ( @@ ("," @@)* ","? )? "}"`
+}
+
+type DictEntry struct {
 	Pos lexer.Position
 
 	Key   *Expression `@@ ":"`

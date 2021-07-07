@@ -208,6 +208,24 @@ func (listValue ListValue) Equals(other Value) bool {
 	return false
 }
 
+type DictValue struct {
+	entries map[string][]DictEntryValue
+}
+
+type DictEntryValue struct {
+	key   string
+	value Value
+}
+
+func (dictValue DictValue) String() string {
+	return "dictValue"
+}
+
+func (dictValue DictValue) Equals(other Value) bool {
+	// TODO: make dictValue values comparable
+	return false
+}
+
 // --
 
 func (exprList ExpressionList) String() string {
@@ -279,12 +297,31 @@ func (functionLiteral FunctionLiteral) Eval(frame *StackFrame) (Value, error) {
 	return functionValue, nil
 }
 
+func (dictLiteral DictLiteral) String() string {
+	return "dictLiteral"
+}
+
+func (dictLiteral DictLiteral) Equals(other Value) bool {
+	if otherLiteral, okDict := other.(DictLiteral); okDict {
+		return dictLiteral.Pos == otherLiteral.Pos
+	}
+	return false
+}
+
+func (dictLiteral DictLiteral) Eval(frame *StackFrame) (Value, error) {
+	// TODO: create DictEntryValues
+	return nil, nil
+}
+
 func (listLiteral ListLiteral) String() string {
 	return "listLiteral"
 }
 
 func (listLiteral ListLiteral) Equals(other Value) bool {
-	return listLiteral.Pos == listLiteral.Pos
+	if otherLiteral, okLit := other.(ListLiteral); okLit {
+		return listLiteral.Pos == otherLiteral.Pos
+	}
+	return false
 }
 
 func (listLiteral ListLiteral) Eval(frame *StackFrame) (Value, error) {
@@ -687,4 +724,23 @@ func (primary Primary) Eval(frame *StackFrame) (Value, error) {
 	}
 
 	panic("unimplemented Primary Eval")
+}
+
+func RunProgram(source string) (*string, error) {
+	ast, err := GenerateAST(source)
+	if err != nil {
+		return nil, err
+	}
+
+	context := Context{}
+	context.Init()
+	InjectRuntime(&context)
+
+	result, err := ast.Eval(&context)
+	if err != nil {
+		return nil, err
+	}
+
+	ret := result.String()
+	return &ret, nil
 }
