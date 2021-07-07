@@ -3,10 +3,11 @@ a = 1
 a = 2 b = 1
 a + b
 
-a +
+a *
 b
 
 a b
+a / b - a
 
 "Functions"
 ca = (x, y) => x + y
@@ -43,5 +44,6 @@ h = {"key": "value"}
 l = {"key": () => true}
 
 "Access"
+list[0]
 h["key"]
 l.key

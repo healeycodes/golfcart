@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 
@@ -9,29 +8,25 @@ import (
 )
 
 func main() {
-	// var cli struct {
-	// 	ExpressionList []string `arg required help:"ExpressionList to parse."`
-	// }
-
-	// ctx := kong.Parse(&cli)
-	// ast, err := golfcart.GenerateAST(strings.Join(cli.ExpressionList, " "))
-
-	// if err != nil {
-	// 	ctx.FatalIfErrorf(err)
-	// }
-
-	// repr.Println(ast)
-
 	file := os.Args[1]
 	b, err := ioutil.ReadFile(file) // just pass the file name
 	if err != nil {
-		fmt.Print(err)
+		println(err)
+	}
+	source := string(b)
+
+	result, err := RunProgram(source)
+	if err != nil {
+		panic(err)
 	}
 
-	ast, err := golfcart.GenerateAST(string(b))
+	println(result)
+}
+
+func RunProgram(source string) (*string, error) {
+	ast, err := golfcart.GenerateAST(source)
 	if err != nil {
-		println(fmt.Sprintf("%v", err))
-		return
+		return nil, err
 	}
 
 	context := golfcart.Context{}
@@ -40,9 +35,9 @@ func main() {
 
 	result, err := ast.Eval(&context)
 	if err != nil {
-		println(fmt.Sprintf("%v", err))
-		return
+		return nil, err
 	}
 
-	println(result.String())
+	ret := result.String()
+	return &ret, nil
 }
