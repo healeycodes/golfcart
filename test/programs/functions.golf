@@ -1,4 +1,3 @@
-// Closures
 counter = () => {
     n = 0
     () => {
@@ -11,3 +10,7 @@ my_counter = counter()
 my_counter()
 my_counter()
 my_counter()
+
+a = counter
+b = counter
+assert(a != b)

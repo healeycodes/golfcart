@@ -2,3 +2,12 @@ a = [1, 2]
 []
 [3, 4]
 a[0]
+b = a[0]
+c = a[0]
+assert(b == 1)
+assert(b == c)
+
+assert([5] != [5])
+
+// TODO: fix len of lists
+// [0].len

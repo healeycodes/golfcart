@@ -28,3 +28,24 @@ func TestPrograms(t *testing.T) {
 		}
 	}
 }
+
+func TestBadPrograms(t *testing.T) {
+	path := "./bad_programs/"
+	files, err := ioutil.ReadDir(path)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, file := range files {
+		cur := path + file.Name()
+		b, err := ioutil.ReadFile(cur)
+		if err != nil {
+			log.Fatal(err)
+		}
+		source := string(b)
+		_, err = golfcart.RunProgram(source)
+		if err == nil {
+			t.Errorf("RunProgram(%s): didn't throw an error", cur)
+		}
+	}
+}

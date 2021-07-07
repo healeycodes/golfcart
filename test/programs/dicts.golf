@@ -7,5 +7,7 @@ assert(a["a"] == 1)
 c = 2
 a = {"a": c}
 b = a["a"]
-log(type(b))
 assert(b == 2)
+assert(a.a == 2)
+
+assert({} != {})

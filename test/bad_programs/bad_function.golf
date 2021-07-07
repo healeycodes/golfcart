@@ -1,0 +1,4 @@
+bad_add = n => n {
+    // Too many params
+    bad_add(1, 2)
+}

@@ -168,7 +168,6 @@ func (functionValue FunctionValue) String() string {
 }
 
 func (functionValue FunctionValue) Equals(other Value) (bool, error) {
-	// TODO: make function values comparable
 	return false, nil
 }
 
@@ -204,7 +203,6 @@ func (listValue ListValue) String() string {
 }
 
 func (listValue ListValue) Equals(other Value) (bool, error) {
-	// TODO: make listValues values comparable
 	return false, nil
 }
 
@@ -230,7 +228,6 @@ func (dictValue DictValue) String() string {
 }
 
 func (dictValue DictValue) Equals(other Value) (bool, error) {
-	// TODO: make dictValue values comparable
 	return false, nil
 }
 
@@ -316,7 +313,7 @@ func (dictLiteral DictLiteral) Equals(other Value) (bool, error) {
 func (dictLiteral DictLiteral) Eval(frame *StackFrame) (Value, error) {
 	entries := make(map[string]Value)
 	dictValue := DictValue{entries: entries}
-	if *dictLiteral.DictEntry != nil {
+	if dictLiteral.DictEntry != nil {
 		for _, dictEntry := range *dictLiteral.DictEntry {
 			var key Value
 			var err error
@@ -405,13 +402,12 @@ func (call Call) Eval(frame *StackFrame) (Value, error) {
 	if call.Access != nil {
 		access = IdentifierValue{val: *call.Access}
 	}
-	var computedAccess Value
 	if call.ComputedAccess != nil {
 		value, err := call.ComputedAccess.Eval(frame)
 		if err != nil {
 			return nil, err
 		}
-		computedAccess = value
+		access = value
 	}
 
 	if functionValue, okFunc := value.(FunctionValue); okFunc {
@@ -428,12 +424,12 @@ func (call Call) Eval(frame *StackFrame) (Value, error) {
 		}
 		return value, nil
 	}
-	if listValue, okList := value.(ListValue); okList && computedAccess != nil {
-		return listAccess(listValue, computedAccess)
+	if listValue, okList := value.(ListValue); okList && access != nil {
+		return listAccess(listValue, access)
 	}
 	if dictValue, okDict := value.(DictValue); okDict {
-		if computedAccess != nil {
-			return dictAccess(dictValue, computedAccess)
+		if access != nil {
+			return dictAccess(dictValue, access)
 		}
 		return dictAccess(dictValue, access)
 	}
@@ -453,7 +449,7 @@ func (call Call) Eval(frame *StackFrame) (Value, error) {
 		return nil, errors.New("there was a problem calling a value of type " + valueType.String() + " with " + access.String())
 	}
 	if call.ComputedAccess != nil {
-		return nil, errors.New("there was a problem calling a value of type " + valueType.String() + " with " + computedAccess.String())
+		return nil, errors.New("there was a problem calling a value of type " + valueType.String() + " with " + access.String())
 	}
 	panic("unreachable branch due to parse logic in Call Eval")
 }
