@@ -144,7 +144,7 @@ type Primary struct {
 type FunctionLiteral struct {
 	Pos lexer.Position
 
-	Parameters []string      `"(" ( @Ident ( "," @Ident )* )? ")"`
+	Parameters []string      `( "(" ( @Ident ( "," @Ident )* )? ")" | @Ident )`
 	Body       []*Expression `"=" ">" ( "{" @@* "}" | @@ )`
 }
 

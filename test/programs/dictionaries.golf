@@ -1,2 +1,7 @@
 a = {"a": 1}
-a["a"]
+assert(a["a"] == 1)
+
+c = 2
+a = {"a": c}
+b = a
+assert(b == 2)

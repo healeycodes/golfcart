@@ -173,7 +173,6 @@ func (functionValue FunctionValue) Equals(other Value) bool {
 
 func (functionValue FunctionValue) Exec(args []Value) (Value, error) {
 	if len(args) != len(functionValue.parameters) {
-		// TODO: improve error message (+ line number if pos?)
 		return nil, errors.New("function called with incorrect number of arguments")
 	}
 	for i, parameter := range functionValue.parameters {
@@ -374,6 +373,18 @@ func (call Call) Equals(other Value) bool {
 func (call Call) Eval(frame *StackFrame) (Value, error) {
 	// TODO: pass the cursor location (call.Pos) for better errors?
 
+	var value Value
+	var err error
+	if ident := call.Ident; ident != nil {
+		value, err = frame.Get(IdentifierValue{val: *ident})
+	}
+	if subExpr := call.SubExpression; subExpr != nil {
+		value, err = subExpr.Eval(frame)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	var args []Value
 	if parameters := call.Parameters; parameters != nil {
 		args = make([]Value, len(*parameters))
@@ -389,75 +400,59 @@ func (call Call) Eval(frame *StackFrame) (Value, error) {
 	var access Value
 	if call.Access != nil {
 		access = IdentifierValue{val: *call.Access}
-	} else if call.ComputedAccess != nil {
+	}
+	var computedAccess Value
+	if call.ComputedAccess != nil {
 		value, err := call.ComputedAccess.Eval(frame)
 		if err != nil {
 			return nil, err
 		}
-		access = value
+		computedAccess = value
 	}
 
-	if ident := call.Ident; ident != nil {
-		value, err := frame.Get(IdentifierValue{val: *ident})
+	if functionValue, okFunc := value.(FunctionValue); okFunc {
+		value, err := functionValue.Exec(args)
 		if err != nil {
 			return nil, err
 		}
-		if functionValue, okFunc := value.(FunctionValue); okFunc {
-			value, err := functionValue.Exec(args)
-			if err != nil {
-				return nil, err
-			}
-			return value, nil
-		}
-		if nativeFunctionValue, okFunc := value.(NativeFunctionValue); okFunc {
-			value, err := nativeFunctionValue.Exec(args)
-			if err != nil {
-				return nil, err
-			}
-			return value, nil
-		}
-		if listValue, okList := value.(ListValue); okList {
-			return listAccess(listValue, args)
-		}
-		if dictValue, okDict := value.(DictValue); okDict {
-			return dictAccess(dictValue, args)
-		}
+		return value, nil
 	}
-	// ((x) => x + 1)(10)
-	if call.SubExpression != nil {
-		value, err := call.SubExpression.Eval(frame)
+	if nativeFunctionValue, okNatFunc := value.(NativeFunctionValue); okNatFunc {
+		value, err := nativeFunctionValue.Exec(args)
 		if err != nil {
 			return nil, err
 		}
-		if functionValue, okFunc := value.(FunctionValue); okFunc {
-			value, err := functionValue.Exec(args)
-			if err != nil {
-				return nil, err
-			}
-			return value, nil
-		}
-		if nativeFunctionValue, okFunc := value.(NativeFunctionValue); okFunc {
-			value, err := nativeFunctionValue.Exec(args)
-			if err != nil {
-				return nil, err
-			}
-			return value, nil
-		}
-		if listValue, okList := value.(ListValue); okList {
-			return listAccess(listValue, args)
-		}
-		if dictValue, okDict := value.(DictValue); okDict {
-			return dictAccess(dictValue, args)
-		}
+		return value, nil
 	}
-	panic("unimplemented Call Eval")
+	if listValue, okList := value.(ListValue); okList && computedAccess != nil {
+		return listAccess(listValue, computedAccess)
+	}
+	if dictValue, okDict := value.(DictValue); okDict {
+		if computedAccess != nil {
+			return dictAccess(dictValue, computedAccess)
+		}
+		return dictAccess(dictValue, access)
+	}
+
+	valueType, err := golfcartType([]Value{value})
+	if call.Parameters != nil {
+		s := make([]string, len(args))
+		for i, arg := range args {
+			s[i] = arg.String()
+		}
+		return nil, errors.New("there was a problem calling a value of type " + valueType.String() + " with " + strings.Join(s, ", "))
+	}
+	if call.Access != nil {
+		return nil, errors.New("there was a problem calling a value of type " + valueType.String() + " with " + access.String())
+	}
+	if call.ComputedAccess != nil {
+		return nil, errors.New("there was a problem calling a value of type " + valueType.String() + " with " + computedAccess.String())
+	}
+	panic("unreachable branch due to parse logic in Call Eval")
 }
 
-func listAccess(listValue ListValue, args []Value) (Value, error) {
-	if len(args) != 1 {
-		return nil, errors.New("Too many arguments used for list access")
-	}
-	if numValue, okNum := args[0].(NumberValue); okNum {
+func listAccess(listValue ListValue, access Value) (Value, error) {
+	if numValue, okNum := access.(NumberValue); okNum {
 		index := int(numValue.val)
 		if index < 0 || index > len(listValue.items)-1 {
 			return nil, errors.New(fmt.Sprint("List access out of bounds: %v", index))
@@ -465,18 +460,15 @@ func listAccess(listValue ListValue, args []Value) (Value, error) {
 		return listValue.items[index], nil
 	}
 
-	value, err := golfcartType(args)
+	value, err := golfcartType([]Value{access})
 	if err != nil {
 		return nil, err
 	}
 	return nil, errors.New("List access expects 1 argument of type number: not " + value.String())
 }
 
-func dictAccess(dictValue DictValue, args []Value) (Value, error) {
-	if len(args) != 1 {
-		return nil, errors.New("Too many arguments used for dict access")
-	}
-	value, err := dictValue.Get(args[0])
+func dictAccess(dictValue DictValue, access Value) (Value, error) {
+	value, err := dictValue.Get(access)
 	if err != nil {
 		return nil, err
 	}
@@ -777,6 +769,8 @@ func (primary Primary) Eval(frame *StackFrame) (Value, error) {
 		return call.Eval(frame)
 	}
 	if ident := primary.Ident; ident != "" {
+		// TODO: if the id exists in scope then it's refering to that
+		// otherwise it's a new id
 		identifierValue := IdentifierValue{val: ident}
 		return identifierValue, nil
 	}
