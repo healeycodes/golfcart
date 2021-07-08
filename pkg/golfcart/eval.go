@@ -471,11 +471,8 @@ func (call Call) Eval(frame *StackFrame) (Value, error) {
 		}
 		return value, nil
 	}
-	if listValue, okList := value.(ListValue); okList {
-		if call.ComputedAccess != nil {
-			return listIndex(listValue, access)
-		}
-		return listAccess(listValue, access)
+	if listValue, okList := value.(ListValue); okList && call.ComputedAccess != nil {
+		return listIndex(listValue, access)
 	}
 	if dictValue, okDict := value.(DictValue); okDict {
 		if access != nil {
@@ -502,20 +499,6 @@ func (call Call) Eval(frame *StackFrame) (Value, error) {
 		return nil, errors.New("there was a problem calling a value of type " + valueType.String() + " with " + access.String())
 	}
 	panic("unreachable branch due to parse logic in Call Eval")
-}
-
-func listAccess(listValue ListValue, access Value) (Value, error) {
-	if strValue, okStr := access.(StringValue); okStr {
-		if strValue.val == "len" {
-			return NumberValue{val: float64(len(listValue.items))}, nil
-		}
-	}
-
-	value, err := golfcartType([]Value{access})
-	if err != nil {
-		return nil, err
-	}
-	return nil, errors.New("list doesn't have property: " + value.String())
 }
 
 func listIndex(listValue ListValue, access Value) (Value, error) {
