@@ -262,29 +262,29 @@ func (listValue ListValue) Equals(other Value) (bool, error) {
 }
 
 type DictValue struct {
-	entries map[string]Value
+	entries map[string]*Value
 }
 
 func (dictValue *DictValue) GetRef(key Value) (Value, error) {
 	value, ok := dictValue.entries[key.String()]
 	if ok {
-		return ReferenceValue{val: &value}, nil
+		return ReferenceValue{val: value}, nil
 	}
 
-	return nil, errors.New("cannot find value for '" + key.String() + "'")
+	return nil, errors.New("cannot find value for key: " + key.String())
 }
 
 func (dictValue *DictValue) Get(key Value) (Value, error) {
 	value, ok := dictValue.entries[key.String()]
 	if ok {
-		return value, nil
+		return *value, nil
 	}
 
-	return nil, errors.New("cannot find value for '" + key.String() + "'")
+	return nil, errors.New("cannot find value for key: " + key.String())
 }
 
 func (dictValue *DictValue) Set(key Value, value Value) {
-	dictValue.entries[key.String()] = value
+	dictValue.entries[key.String()] = &value
 }
 
 func (dictValue DictValue) String() string {
@@ -779,7 +779,7 @@ func (dictLiteral DictLiteral) Equals(other Value) (bool, error) {
 }
 
 func (dictLiteral DictLiteral) Eval(frame *StackFrame) (Value, error) {
-	entries := make(map[string]Value)
+	entries := make(map[string]*Value)
 	dictValue := DictValue{entries: entries}
 	if dictLiteral.DictEntry != nil {
 		for _, dictEntry := range *dictLiteral.DictEntry {

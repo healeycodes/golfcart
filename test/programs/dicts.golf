@@ -10,4 +10,4 @@ b = a["a"]
 assert(b, 2)
 assert(a.a, 2)
 
-assert({} != {}, true)
+assert({} == {}, false)

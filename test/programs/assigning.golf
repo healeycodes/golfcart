@@ -1,3 +1,8 @@
-a = ["a", "b"]
-a[0] = "c"
-assert(a[0], "c")
+
+d = {a: 1}
+d.a = 2
+assert(d.a, 2)
+
+e = {a: 5}
+e["a"] = 50
+assert(e.a, 50)

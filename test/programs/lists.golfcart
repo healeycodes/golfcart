@@ -8,3 +8,4 @@ assert(b, 1)
 assert(b, c)
 
 assert([5] == [5], false)
+assert([] == [], false)
