@@ -209,7 +209,7 @@ type ReturnValue struct {
 }
 
 func (returnValue ReturnValue) Error() string {
-	return returnValue.pos.String() + " return expression called outside of a function"
+	return returnValue.pos.String() + " return expression used outside of a function"
 }
 
 type FunctionValue struct {
@@ -496,7 +496,27 @@ func (comparison Comparison) Eval(frame *StackFrame) (Value, error) {
 	if comparison.Op == "" {
 		return left, nil
 	}
-	return nil, errors.New("unimplemented Comparison Eval")
+	right, err := comparison.Next.Eval(frame)
+	if err != nil {
+		return nil, err
+	}
+	if leftNum, okNum := left.(NumberValue); okNum {
+		if rightNum, okNum := right.(NumberValue); okNum {
+			return BoolValue{val: comparison.Op == "<" && leftNum.val < rightNum.val ||
+				comparison.Op == "<=" && leftNum.val <= rightNum.val ||
+				comparison.Op == ">" && leftNum.val > rightNum.val ||
+				comparison.Op == ">=" && leftNum.val >= rightNum.val}, nil
+		}
+	}
+	leftType, err := golfcartType([]Value{left})
+	if err != nil {
+		return nil, err
+	}
+	rightType, err := golfcartType([]Value{left})
+	if err != nil {
+		return nil, err
+	}
+	return nil, errors.New("only numbers can be compared: " + leftType.String() + " " + comparison.Op + " " + rightType.String())
 }
 
 func (addition Addition) String() string {
@@ -654,8 +674,8 @@ func (primary Primary) String() string {
 }
 
 func (primary Primary) Eval(frame *StackFrame) (Value, error) {
-	if ifLiteral := primary.IfLiteral; ifLiteral != nil {
-		return ifLiteral.Eval(frame)
+	if ifExpression := primary.If; ifExpression != nil {
+		return ifExpression.Eval(frame)
 	}
 	if functionLiteral := primary.FunctionLiteral; functionLiteral != nil {
 		return functionLiteral.Eval(frame)
@@ -678,6 +698,9 @@ func (primary Primary) Eval(frame *StackFrame) (Value, error) {
 			return nil, err
 		}
 		return nil, ReturnValue{pos: returnVal.Pos, val: value}
+	}
+	if forExpression := primary.For; forExpression != nil {
+		return forExpression.Eval(frame)
 	}
 	if primary.Number != nil {
 		return NumberValue{val: *primary.Number}, nil
@@ -706,25 +729,25 @@ func (primary Primary) Eval(frame *StackFrame) (Value, error) {
 	panic("unimplemented Primary Eval")
 }
 
-func (ifLiteral IfLiteral) String() string {
-	return "ifLiteral"
+func (ifExpression If) String() string {
+	return "if expression"
 }
 
-func (ifLiteral IfLiteral) Equals(other Value) (bool, error) {
+func (ifExpression If) Equals(other Value) (bool, error) {
 	return false, nil
 }
 
-func (ifLiteral IfLiteral) Eval(frame *StackFrame) (Value, error) {
+func (ifExpression If) Eval(frame *StackFrame) (Value, error) {
 	ifFrame := frame.GetChild()
-	if ifLiteral.Init != nil {
-		for _, assignExpr := range ifLiteral.Init {
+	if ifExpression.Init != nil {
+		for _, assignExpr := range ifExpression.Init {
 			_, err := (*assignExpr).Eval(ifFrame)
 			if err != nil {
 				return nil, err
 			}
 		}
 	}
-	condition, err := ifLiteral.Condition.Eval(ifFrame)
+	condition, err := ifExpression.Condition.Eval(ifFrame)
 	if err != nil {
 		return nil, err
 	}
@@ -733,15 +756,15 @@ func (ifLiteral IfLiteral) Eval(frame *StackFrame) (Value, error) {
 	if boolValue, okBool := condition.(BoolValue); okBool {
 		var err error
 		if boolValue.val {
-			for _, expr := range ifLiteral.IfBody {
+			for _, expr := range ifExpression.IfBody {
 				result, err = (*expr).Eval(ifFrame)
 				if err != nil {
 					return nil, err
 				}
 			}
 			return result, nil
-		} else if ifLiteral.ElseBody != nil {
-			for _, expr := range ifLiteral.ElseBody {
+		} else if ifExpression.ElseBody != nil {
+			for _, expr := range ifExpression.ElseBody {
 				result, err = (*expr).Eval(ifFrame)
 				if err != nil {
 					return nil, err
@@ -970,6 +993,67 @@ func dictAccess(dictValue DictValue, access Value) (Value, error) {
 		return nil, err
 	}
 	return value, nil
+}
+
+func (forExpression For) String() string {
+	return "for expression"
+}
+
+func (forExpression For) Equals(other Value) (bool, error) {
+	return false, nil
+}
+
+func (forExpression For) Eval(frame *StackFrame) (Value, error) {
+	forFrame := frame.GetChild()
+	if forExpression.Init != nil {
+		for _, assignExpr := range forExpression.Init {
+			_, err := (*assignExpr).Eval(forFrame)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	for {
+		condition, err := forExpression.Condition.Eval(forFrame)
+		if err != nil {
+			return nil, err
+		}
+		if boolValue, okBool := condition.(BoolValue); okBool {
+			if boolValue.val {
+				for _, expr := range forExpression.Body {
+					_, err = (*expr).Eval(forFrame)
+					if err != nil {
+						return nil, err
+					}
+				}
+			}
+		} else {
+			valueType, err := golfcartType([]Value{condition})
+			if err != nil {
+				return nil, err
+			}
+			return nil, errors.New("condition expression of for loop should be of type bool not: " + valueType.String())
+		}
+		post, err := forExpression.Post.Eval(forFrame)
+		if err != nil {
+			return nil, err
+		}
+		if boolValue, okBool := post.(BoolValue); okBool {
+			if boolValue.val {
+				continue
+			}
+		} else {
+			valueType, err := golfcartType([]Value{post})
+			if err != nil {
+				return nil, err
+			}
+			return nil, errors.New("post expression of for loop should be of type bool not: " + valueType.String())
+		}
+		break
+	}
+
+	return NilValue{}, nil
 }
 
 func RunProgram(source string, debug bool) (*string, error) {

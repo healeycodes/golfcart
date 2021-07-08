@@ -9,3 +9,6 @@ assert(b, c)
 
 assert([5] == [5], false)
 assert([] == [], false)
+
+d = [1]
+assert(d[0] + 1 == 2, true)

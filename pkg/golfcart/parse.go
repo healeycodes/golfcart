@@ -86,7 +86,7 @@ type Unary struct {
 type Primary struct {
 	Pos lexer.Position
 
-	IfLiteral       *IfLiteral       `@@`
+	If              *If              `@@`
 	FunctionLiteral *FunctionLiteral `| @@`
 	ListLiteral     *ListLiteral     `| @@`
 	DictLiteral     *DictLiteral     `| @@`
@@ -105,10 +105,10 @@ type Primary struct {
 	Ident           *string          `| @Ident`
 }
 
-type IfLiteral struct {
+type If struct {
 	Pos lexer.Position
 
-	Init      []*Assignment `"if" ( @@ ";" )?`
+	Init      []*Assignment `"if" ( @@ ("," @@)* ";" )?`
 	Condition *Expression   `@@`
 	IfBody    []*Expression `"{" @@* "}"`
 	ElseBody  []*Expression `( "else" "{" @@* "}" )?`
@@ -174,8 +174,8 @@ type For struct {
 	Pos lexer.Position
 
 	Init      []*Assignment `"for" ( @@* ("," @@ )* )* ";"`
-	Condition *Expression   `@@* ";"`
-	Post      *Expression   `@@*`
+	Condition *Expression   `@@ ";"`
+	Post      *Expression   `@@`
 	Body      []*Expression `"{" @@* "}"`
 }
 
