@@ -1,0 +1,3 @@
+if b = 1; b == 1 {}
+// Don't bleed scope from inner-if assignment
+b

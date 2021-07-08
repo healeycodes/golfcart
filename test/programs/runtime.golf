@@ -1,5 +1,5 @@
 // Assert
-assert(true)
+assert(true, true)
 
 // Type casts
 a = "1"
@@ -13,13 +13,16 @@ c = true
 str(c)
 
 // Type
-type(1)
+assert(type(1), "number")
+assert(type("a"), "string")
+assert(type(true), "bool")
+assert(type(false), "bool")
+assert(type([]), "list")
+assert(type({}), "dict")
+assert(type(()=>nil), "function")
+assert(type(assert), "function")
 
 // Logging
 log(a)
 log(a, b)
 log(false)
-
-// Stringing native function names
-logger = log
-assert(str(logger) == "log function")

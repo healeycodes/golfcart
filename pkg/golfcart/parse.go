@@ -15,40 +15,8 @@ type ExpressionList struct {
 type Expression struct {
 	Pos lexer.Position
 
-	For                 *For        `@@`
-	While               *While      `| @@`
-	Break               *Break      `| @@`
-	Continue            *Continue   `| @@`
-	Assignment          *Assignment `| @@`
+	Assignment          *Assignment `@@`
 	NativeFunctionValue *NativeFunctionValue
-}
-
-type Break struct {
-	Pos lexer.Position
-
-	Break *string `"break"`
-}
-
-type Continue struct {
-	Pos lexer.Position
-
-	Continue *string `"continue"`
-}
-
-type For struct {
-	Pos lexer.Position
-
-	Init      []*Assignment `"for" ( @@* ("," @@ )* )* ";"`
-	Condition *Expression   `@@* ";"`
-	Post      *Expression   `@@*`
-	Body      []*Expression `"{" @@* "}"`
-}
-
-type While struct {
-	Pos lexer.Position
-
-	Condition *Expression   `"while" @@`
-	Body      []*Expression `"{" @@* "}"`
 }
 
 type Assignment struct {
@@ -124,6 +92,11 @@ type Primary struct {
 	DictLiteral     *DictLiteral     `| @@`
 	SubExpression   *Expression      `| "(" @@ ")"`
 	Call            *Call            `| @@`
+	For             *For             `| @@`
+	While           *While           `| @@`
+	Break           *Break           `| @@`
+	Continue        *Continue        `| @@`
+	Return          *Return          `| @@`
 	Number          *float64         `| @Float | @Int`
 	Str             *string          `| @String`
 	True            *bool            `| @"true"`
@@ -176,6 +149,41 @@ type Call struct {
 	Parameters     *[]Expression `( "(" ( @@ ( "," @@ )* )? ")" `
 	Access         *string       `    | "." @Ident`
 	ComputedAccess *Expression   `    | "[" @@ "]" )`
+}
+
+type Break struct {
+	Pos lexer.Position
+
+	Break *string `"break"`
+}
+
+type Continue struct {
+	Pos lexer.Position
+
+	Continue *string `"continue"`
+}
+
+type Return struct {
+	Pos lexer.Position
+
+	Return     *string     `( "return" `
+	Expression *Expression `@@ )`
+}
+
+type For struct {
+	Pos lexer.Position
+
+	Init      []*Assignment `"for" ( @@* ("," @@ )* )* ";"`
+	Condition *Expression   `@@* ";"`
+	Post      *Expression   `@@*`
+	Body      []*Expression `"{" @@* "}"`
+}
+
+type While struct {
+	Pos lexer.Position
+
+	Condition *Expression   `"while" @@`
+	Body      []*Expression `"{" @@* "}"`
 }
 
 var (

@@ -4,10 +4,10 @@ a = [1, 2]
 a[0]
 b = a[0]
 c = a[0]
-assert(b == 1)
-assert(b == c)
+assert(b, 1)
+assert(b, c)
 
-assert([5] != [5])
+assert([5] == [5], false)
 
 // TODO: fix len of lists
 // [0].len

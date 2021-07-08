@@ -13,4 +13,18 @@ my_counter()
 
 a = counter
 b = counter
-assert(a != b)
+assert(a != b, true)
+
+last_value_return = () => {
+    1
+    2
+}
+assert(last_value_return(), 2)
+
+with_return = () => {
+    return 1
+
+    // This won't evaluate
+    assert(true, false)
+}
+assert(with_return(), 1)

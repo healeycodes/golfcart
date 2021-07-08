@@ -29,15 +29,15 @@ func (nativeFunctionValue NativeFunctionValue) Equals(other Value) (bool, error)
 }
 
 func golfcartAssert(args []Value) (Value, error) {
-	if len(args) != 1 {
-		return nil, errors.New("assert() expects 1 argument of type bool")
+	if len(args) != 2 {
+		return nil, errors.New("assert() expects 2 arguments")
 	}
-	boolValue, okBool := args[0].(BoolValue)
-	if !okBool {
-		return nil, errors.New("assert() expects 1 argument of type bool")
+	equal, err := args[0].Equals(args[1])
+	if err != nil {
+		return nil, err
 	}
-	if boolValue.val == false {
-		return nil, errors.New("assert failed!")
+	if !equal {
+		return nil, errors.New("assert failed: " + args[0].String() + " != " + args[1].String())
 	}
 	return NilValue{}, nil
 }
@@ -56,20 +56,20 @@ func golfcartStr(args []Value) (Value, error) {
 		return nil, errors.New("str() expects 1 argument of type num or bool")
 	}
 	value := args[0]
-	switch value.(type) {
-	case StringValue:
-		return value, nil
-	case NumberValue:
-		return StringValue{val: value.String()}, nil
-	case BoolValue:
-		return StringValue{val: value.String()}, nil
-	case FunctionValue:
-		return StringValue{val: value.String()}, nil
-	case NativeFunctionValue:
-		return StringValue{val: value.String()}, nil
+	if strValue, okStr := value.(StringValue); okStr {
+		return strValue, nil
+	}
+	if numValue, okNum := value.(NumberValue); okNum {
+		return StringValue{val: []byte(nvToS(numValue))}, nil
+	}
+	if boolValue, okBool := value.(BoolValue); okBool {
+		if boolValue.val {
+			return StringValue{val: []byte("true)")}, nil
+		}
+		return StringValue{val: []byte("false)")}, nil
 	}
 
-	return nil, errors.New("str() expects 1 argument of type num or bool")
+	return nil, errors.New("str() expects 1 argument of type string, number, or bool")
 }
 
 func golfcartNum(args []Value) (Value, error) {
@@ -84,9 +84,9 @@ func golfcartNum(args []Value) (Value, error) {
 	if !okStr {
 		return nil, errors.New("num() expects 1 argument of type str")
 	}
-	f, err := strconv.ParseFloat(strValue.val, 64)
+	f, err := strconv.ParseFloat(string(strValue.val), 64)
 	if err != nil {
-		return nil, errors.New("num() couldn't convert " + strValue.val + " to num")
+		return nil, errors.New("num() couldn't convert " + strValue.String() + " to num")
 	}
 	return NumberValue{val: f}, nil
 }
@@ -98,20 +98,20 @@ func golfcartType(args []Value) (Value, error) {
 	value := args[0]
 	switch value.(type) {
 	case StringValue:
-		return StringValue{val: "string"}, nil
+		return StringValue{val: []byte("string")}, nil
 	case NumberValue:
-		return StringValue{val: "number"}, nil
+		return StringValue{val: []byte("number")}, nil
 	case BoolValue:
-		return StringValue{val: "bool"}, nil
+		return StringValue{val: []byte("bool")}, nil
 	case FunctionValue, NativeFunctionValue:
-		return StringValue{val: "function"}, nil
+		return StringValue{val: []byte("function")}, nil
 	case ListValue:
-		return StringValue{val: "list"}, nil
+		return StringValue{val: []byte("list")}, nil
 	case DictValue:
-		return StringValue{val: "dict"}, nil
+		return StringValue{val: []byte("dict")}, nil
 	case NilValue:
-		return StringValue{val: "nil"}, nil
+		return StringValue{val: []byte("nil")}, nil
 	}
 
-	panic("unimplemented golfcartType")
+	panic("unreachable golfcartType")
 }

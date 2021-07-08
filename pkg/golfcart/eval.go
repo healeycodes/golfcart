@@ -3,7 +3,10 @@ package golfcart
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
+
+	"github.com/alecthomas/participle/v2/lexer"
 )
 
 type Context struct {
@@ -81,6 +84,23 @@ type Value interface {
 	Equals(Value) (bool, error)
 }
 
+type ReferenceValue struct {
+	val *Value
+}
+
+func (referenceValue ReferenceValue) String() string {
+	return "reference"
+}
+
+func (referenceValue ReferenceValue) Equals(other Value) (bool, error) {
+	if otherRefVal, okRef := other.(ReferenceValue); okRef {
+		if referenceValue.val != nil && otherRefVal.val != nil {
+			return referenceValue.val == otherRefVal.val, nil
+		}
+	}
+	return false, nil
+}
+
 type NilValue struct{}
 
 func (numberValue NilValue) String() string {
@@ -130,19 +150,38 @@ func (numberValue NumberValue) Equals(other Value) (bool, error) {
 	return false, errors.New("only numbers can be compared with numbers")
 }
 
+func nvToS(numberValue NumberValue) string {
+	return nToS(numberValue.val)
+}
+
+func nToS(n float64) string {
+	return strconv.FormatFloat(n, 'f', -1, 64)
+}
+
 type StringValue struct {
-	val string
+	val []byte
 }
 
 func (stringValue StringValue) String() string {
-	return stringValue.val
+	return string(stringValue.val)
 }
 
 func (stringValue StringValue) Equals(other Value) (bool, error) {
 	if other, ok := other.(StringValue); ok {
-		return stringValue.val == other.val, nil
+		a := stringValue.val
+		b := other.val
+		if len(a) != len(b) {
+			return false, nil
+		}
+		for i := range a {
+			if a[i] != b[i] {
+				return false, nil
+			}
+		}
+		return true, nil
 	}
-	panic("unimplemented StringValue Equals")
+	otherType, _ := golfcartType([]Value{stringValue})
+	return false, errors.New("strings can only be compared to other strings: found" + otherType.String())
 }
 
 type BoolValue struct {
@@ -231,6 +270,15 @@ func (dictValue DictValue) Equals(other Value) (bool, error) {
 	return false, nil
 }
 
+type ReturnValue struct {
+	pos lexer.Position
+	val Value
+}
+
+func (returnValue ReturnValue) Error() string {
+	return returnValue.pos.String() + " return expression called outside of a function"
+}
+
 // --
 
 func (exprList ExpressionList) String() string {
@@ -285,246 +333,6 @@ func (expr Expression) Eval(frame *StackFrame) (Value, error) {
 	panic("unimplemented Expression Eval")
 }
 
-func (ifLiteral IfLiteral) String() string {
-	return "ifLiteral"
-}
-
-func (ifLiteral IfLiteral) Equals(other Value) (bool, error) {
-	return false, nil
-}
-
-func (ifLiteral IfLiteral) Eval(frame *StackFrame) (Value, error) {
-	ifFrame := frame.GetChild()
-	if ifLiteral.Init != nil {
-		for _, assignExpr := range ifLiteral.Init {
-			_, err := (*assignExpr).Eval(ifFrame)
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
-	condition, err := ifLiteral.Condition.Eval(frame)
-	if err != nil {
-		return nil, err
-	}
-	var result Value
-	result = NilValue{}
-	if boolValue, okBool := condition.(BoolValue); okBool {
-		var err error
-		if boolValue.val {
-			for _, expr := range ifLiteral.IfBody {
-				result, err = (*expr).Eval(ifFrame)
-				if err != nil {
-					return nil, err
-				}
-			}
-			return result, nil
-		} else if ifLiteral.ElseBody != nil {
-			for _, expr := range ifLiteral.ElseBody {
-				result, err = (*expr).Eval(ifFrame)
-				if err != nil {
-					return nil, err
-				}
-			}
-			return result, nil
-		}
-	} else {
-		return nil, errors.New("if expression conditional should evaluate to true or false")
-	}
-
-	return result, nil
-}
-
-func (functionLiteral FunctionLiteral) String() string {
-	return "functionLiteral"
-}
-
-func (functionLiteral FunctionLiteral) Equals(other Value) (bool, error) {
-	return false, nil
-}
-
-func (functionLiteral FunctionLiteral) Eval(frame *StackFrame) (Value, error) {
-	closureFrame := frame.GetChild()
-	functionValue := FunctionValue{parameters: functionLiteral.Parameters, frame: closureFrame, expressions: functionLiteral.Body}
-	return functionValue, nil
-}
-
-func (dictLiteral DictLiteral) String() string {
-	return "dictLiteral"
-}
-
-func (dictLiteral DictLiteral) Equals(other Value) (bool, error) {
-	return false, nil
-}
-
-func (dictLiteral DictLiteral) Eval(frame *StackFrame) (Value, error) {
-	entries := make(map[string]Value)
-	dictValue := DictValue{entries: entries}
-	if dictLiteral.DictEntry != nil {
-		for _, dictEntry := range *dictLiteral.DictEntry {
-			var key Value
-			var err error
-			if dictEntry.Key != nil {
-				key, err = dictEntry.Key.Eval(frame)
-				if err != nil {
-					return nil, err
-				}
-			} else if dictEntry.Ident != nil {
-				key = IdentifierValue{val: *dictEntry.Ident}
-			}
-
-			value, err := dictEntry.Value.Eval(frame)
-			if err != nil {
-				return nil, err
-			}
-			dictValue.Set(key, value)
-		}
-	}
-
-	return dictValue, nil
-}
-
-func (listLiteral ListLiteral) String() string {
-	return "listLiteral"
-}
-
-func (listLiteral ListLiteral) Equals(other Value) (bool, error) {
-	return false, nil
-}
-
-func (listLiteral ListLiteral) Eval(frame *StackFrame) (Value, error) {
-	values := make([]Value, 0)
-	if listLiteral.Expressions != nil {
-		for _, expression := range *listLiteral.Expressions {
-			result, err := expression.Eval(frame)
-			if err != nil {
-				return nil, err
-			}
-			values = append(values, result)
-		}
-		return ListValue{items: values}, nil
-	}
-	return ListValue{items: values}, nil
-}
-
-func (call Call) String() string {
-	return "call"
-}
-
-func (call Call) Equals(other Value) (bool, error) {
-	return false, nil
-}
-
-func (call Call) Eval(frame *StackFrame) (Value, error) {
-	// TODO: pass the cursor location (call.Pos) for better errors?
-
-	var value Value
-	var err error
-	if ident := call.Ident; ident != nil {
-		value, err = frame.Get(IdentifierValue{val: *ident})
-		if err != nil {
-			return nil, err
-		}
-	}
-	if subExpr := call.SubExpression; subExpr != nil {
-		value, err = subExpr.Eval(frame)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	var args []Value
-	if parameters := call.Parameters; parameters != nil {
-		args = make([]Value, len(*parameters))
-		for i, parameter := range *parameters {
-			result, err := parameter.Eval(frame)
-			if err != nil {
-				return nil, err
-			}
-			args[i] = result
-		}
-	}
-
-	var access Value
-	if call.Access != nil {
-		access = IdentifierValue{val: *call.Access}
-	}
-	if call.ComputedAccess != nil {
-		value, err := call.ComputedAccess.Eval(frame)
-		if err != nil {
-			return nil, err
-		}
-		access = value
-	}
-
-	if functionValue, okFunc := value.(FunctionValue); okFunc {
-		value, err := functionValue.Exec(args)
-		if err != nil {
-			return nil, err
-		}
-		return value, nil
-	}
-	if nativeFunctionValue, okNatFunc := value.(NativeFunctionValue); okNatFunc {
-		value, err := nativeFunctionValue.Exec(args)
-		if err != nil {
-			return nil, err
-		}
-		return value, nil
-	}
-	if listValue, okList := value.(ListValue); okList && access != nil {
-		return listAccess(listValue, access)
-	}
-	if dictValue, okDict := value.(DictValue); okDict {
-		if access != nil {
-			return dictAccess(dictValue, access)
-		}
-		return dictAccess(dictValue, access)
-	}
-
-	valueType, err := golfcartType([]Value{value})
-	if err != nil {
-		return nil, err
-	}
-	if call.Parameters != nil {
-		s := make([]string, len(args))
-		for i, arg := range args {
-			s[i] = arg.String()
-		}
-		return nil, errors.New("there was a problem calling a value of type " + valueType.String() + " with " + strings.Join(s, ", "))
-	}
-	if call.Access != nil {
-		return nil, errors.New("there was a problem calling a value of type " + valueType.String() + " with " + access.String())
-	}
-	if call.ComputedAccess != nil {
-		return nil, errors.New("there was a problem calling a value of type " + valueType.String() + " with " + access.String())
-	}
-	panic("unreachable branch due to parse logic in Call Eval")
-}
-
-func listAccess(listValue ListValue, access Value) (Value, error) {
-	if numValue, okNum := access.(NumberValue); okNum {
-		index := int(numValue.val)
-		if index < 0 || index > len(listValue.items)-1 {
-			return nil, fmt.Errorf("list access out of bounds: %v", index)
-		}
-		return listValue.items[index], nil
-	}
-
-	value, err := golfcartType([]Value{access})
-	if err != nil {
-		return nil, err
-	}
-	return nil, errors.New("list access expects 1 argument of type number: not " + value.String())
-}
-
-func dictAccess(dictValue DictValue, access Value) (Value, error) {
-	value, err := dictValue.Get(access)
-	if err != nil {
-		return nil, err
-	}
-	return value, nil
-}
-
 func (assignment Assignment) String() string {
 	return "assignment"
 }
@@ -555,7 +363,7 @@ func (assignment Assignment) Eval(frame *StackFrame) (Value, error) {
 		frame.Set(left, right)
 		return NilValue{}, nil
 	}
-	panic("unreachable")
+	panic("unreachable Assignment Eval")
 }
 
 func (logicAnd LogicAnd) String() string {
@@ -703,7 +511,7 @@ func (addition Addition) Eval(frame *StackFrame) (Value, error) {
 	if addition.Op == "+" && (okLeft && !okRight || okRight && !okLeft) {
 		return nil, errors.New(addition.Multiplication.Pos.String() + " '+' only supported between strings")
 	} else if addition.Op == "+" && (okLeft || okRight) {
-		return StringValue{val: leftStr.val + rightStr.val}, nil
+		return StringValue{val: append(leftStr.val, rightStr.val...)}, nil
 	}
 
 	leftNum, okLeft := left.(NumberValue)
@@ -836,16 +644,23 @@ func (primary Primary) Eval(frame *StackFrame) (Value, error) {
 	if call := primary.Call; call != nil {
 		return call.Eval(frame)
 	}
-	if ident := primary.Ident; ident != nil {
-		identifierValue := IdentifierValue{val: *ident}
-		return identifierValue, nil
+	if returnVal := primary.Return; returnVal != nil {
+		value, err := returnVal.Expression.Eval(frame)
+		if err != nil {
+			return nil, err
+		}
+		return nil, ReturnValue{pos: returnVal.Pos, val: value}
 	}
 	if primary.Number != nil {
 		return NumberValue{val: *primary.Number}, nil
 	}
+	if ident := primary.Ident; ident != nil {
+		identifierValue := IdentifierValue{val: *ident}
+		return identifierValue, nil
+	}
 	if primary.Str != nil {
 		// TODO: Parse strings without including quote `"` marks
-		return StringValue{val: (*primary.Str)[1 : len((*primary.Str))-1]}, nil
+		return StringValue{val: []byte(*primary.Str)[1 : len((*primary.Str))-1]}, nil
 	}
 	if primary.True != nil {
 		return BoolValue{val: true}, nil
@@ -860,7 +675,249 @@ func (primary Primary) Eval(frame *StackFrame) (Value, error) {
 	panic("unimplemented Primary Eval")
 }
 
-func RunProgram(source string) (*string, error) {
+func (ifLiteral IfLiteral) String() string {
+	return "ifLiteral"
+}
+
+func (ifLiteral IfLiteral) Equals(other Value) (bool, error) {
+	return false, nil
+}
+
+func (ifLiteral IfLiteral) Eval(frame *StackFrame) (Value, error) {
+	ifFrame := frame.GetChild()
+	if ifLiteral.Init != nil {
+		for _, assignExpr := range ifLiteral.Init {
+			_, err := (*assignExpr).Eval(ifFrame)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+	condition, err := ifLiteral.Condition.Eval(ifFrame)
+	if err != nil {
+		return nil, err
+	}
+	var result Value
+	result = NilValue{}
+	if boolValue, okBool := condition.(BoolValue); okBool {
+		var err error
+		if boolValue.val {
+			for _, expr := range ifLiteral.IfBody {
+				result, err = (*expr).Eval(ifFrame)
+				if err != nil {
+					return nil, err
+				}
+			}
+			return result, nil
+		} else if ifLiteral.ElseBody != nil {
+			for _, expr := range ifLiteral.ElseBody {
+				result, err = (*expr).Eval(ifFrame)
+				if err != nil {
+					return nil, err
+				}
+			}
+			return result, nil
+		}
+	} else {
+		return nil, errors.New("if expression conditional should evaluate to true or false")
+	}
+
+	return result, nil
+}
+
+func (functionLiteral FunctionLiteral) String() string {
+	return "functionLiteral"
+}
+
+func (functionLiteral FunctionLiteral) Equals(other Value) (bool, error) {
+	return false, nil
+}
+
+func (functionLiteral FunctionLiteral) Eval(frame *StackFrame) (Value, error) {
+	closureFrame := frame.GetChild()
+	functionValue := FunctionValue{parameters: functionLiteral.Parameters, frame: closureFrame, expressions: functionLiteral.Body}
+	return functionValue, nil
+}
+
+func (dictLiteral DictLiteral) String() string {
+	return "dictLiteral"
+}
+
+func (dictLiteral DictLiteral) Equals(other Value) (bool, error) {
+	return false, nil
+}
+
+func (dictLiteral DictLiteral) Eval(frame *StackFrame) (Value, error) {
+	entries := make(map[string]Value)
+	dictValue := DictValue{entries: entries}
+	if dictLiteral.DictEntry != nil {
+		for _, dictEntry := range *dictLiteral.DictEntry {
+			var key Value
+			var err error
+			if dictEntry.Key != nil {
+				key, err = dictEntry.Key.Eval(frame)
+				if err != nil {
+					return nil, err
+				}
+			} else if dictEntry.Ident != nil {
+				key = IdentifierValue{val: *dictEntry.Ident}
+			}
+
+			value, err := dictEntry.Value.Eval(frame)
+			if err != nil {
+				return nil, err
+			}
+			dictValue.Set(key, value)
+		}
+	}
+
+	return dictValue, nil
+}
+
+func (listLiteral ListLiteral) String() string {
+	return "listLiteral"
+}
+
+func (listLiteral ListLiteral) Equals(other Value) (bool, error) {
+	return false, nil
+}
+
+func (listLiteral ListLiteral) Eval(frame *StackFrame) (Value, error) {
+	values := make([]Value, 0)
+	if listLiteral.Expressions != nil {
+		for _, expression := range *listLiteral.Expressions {
+			result, err := expression.Eval(frame)
+			if err != nil {
+				return nil, err
+			}
+			values = append(values, result)
+		}
+		return ListValue{items: values}, nil
+	}
+	return ListValue{items: values}, nil
+}
+
+func (call Call) String() string {
+	return "call"
+}
+
+func (call Call) Equals(other Value) (bool, error) {
+	return false, nil
+}
+
+func (call Call) Eval(frame *StackFrame) (Value, error) {
+	// TODO: pass the cursor location (call.Pos) for better errors?
+	var value Value
+	var err error
+	if ident := call.Ident; ident != nil {
+		value, err = frame.Get(IdentifierValue{val: *ident})
+		if err != nil {
+			return nil, err
+		}
+	}
+	if subExpr := call.SubExpression; subExpr != nil {
+		value, err = subExpr.Eval(frame)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	var args []Value
+	if parameters := call.Parameters; parameters != nil {
+		args = make([]Value, len(*parameters))
+		for i, parameter := range *parameters {
+			result, err := parameter.Eval(frame)
+			if err != nil {
+				return nil, err
+			}
+			args[i] = result
+		}
+	}
+
+	var access Value
+	if call.Access != nil {
+		access = IdentifierValue{val: *call.Access}
+	}
+	if call.ComputedAccess != nil {
+		value, err := call.ComputedAccess.Eval(frame)
+		if err != nil {
+			return nil, err
+		}
+		access = value
+	}
+
+	if functionValue, okFunc := value.(FunctionValue); okFunc {
+		value, err := functionValue.Exec(args)
+		if returnValue, okRet := err.(ReturnValue); okRet {
+			return returnValue.val, nil
+		}
+		if err != nil {
+			return nil, err
+		}
+		return value, nil
+	}
+	if nativeFunctionValue, okNatFunc := value.(NativeFunctionValue); okNatFunc {
+		value, err := nativeFunctionValue.Exec(args)
+		if err != nil {
+			return nil, err
+		}
+		return value, nil
+	}
+	if listValue, okList := value.(ListValue); okList && access != nil {
+		return listAccess(listValue, access)
+	}
+	if dictValue, okDict := value.(DictValue); okDict {
+		if access != nil {
+			return dictAccess(dictValue, access)
+		}
+		return dictAccess(dictValue, access)
+	}
+
+	valueType, err := golfcartType([]Value{value})
+	if err != nil {
+		return nil, err
+	}
+	if call.Parameters != nil {
+		s := make([]string, len(args))
+		for i, arg := range args {
+			s[i] = arg.String()
+		}
+		return nil, errors.New("there was a problem calling a value of type " + valueType.String() + " with " + strings.Join(s, ", "))
+	}
+	if call.Access != nil {
+		return nil, errors.New("there was a problem calling a value of type " + valueType.String() + " with " + access.String())
+	}
+	if call.ComputedAccess != nil {
+		return nil, errors.New("there was a problem calling a value of type " + valueType.String() + " with " + access.String())
+	}
+	panic("unreachable branch due to parse logic in Call Eval")
+}
+
+func listAccess(listValue ListValue, access Value) (Value, error) {
+	if numValue, okNum := access.(NumberValue); okNum {
+		index := int(numValue.val)
+		if index < 0 || index > len(listValue.items)-1 {
+			return nil, fmt.Errorf("list access out of bounds: %v", index)
+		}
+		return listValue.items[index], nil
+	}
+
+	value, err := golfcartType([]Value{access})
+	if err != nil {
+		return nil, err
+	}
+	return nil, errors.New("list access expects 1 argument of type number: not " + value.String())
+}
+
+func dictAccess(dictValue DictValue, access Value) (Value, error) {
+	value, err := dictValue.Get(access)
+	if err != nil {
+		return nil, err
+	}
+	return value, nil
+}
+
+func RunProgram(source string, debug bool) (*string, error) {
 	ast, err := GenerateAST(source)
 	if err != nil {
 		return nil, err
@@ -873,6 +930,10 @@ func RunProgram(source string) (*string, error) {
 	result, err := ast.Eval(&context)
 	if err != nil {
 		return nil, err
+	}
+
+	if debug {
+		println(context.stackFrame.String())
 	}
 
 	ret := result.String()

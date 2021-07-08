@@ -3,4 +3,5 @@
 "world!"
 + ""
 
-assert("" == "")
+assert("a", "a")
+assert("", "")

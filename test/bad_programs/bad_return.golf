@@ -1,0 +1,4 @@
+if true {
+    // Can only return from functions
+    return 1
+}

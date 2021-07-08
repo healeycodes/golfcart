@@ -22,7 +22,7 @@ func TestPrograms(t *testing.T) {
 			log.Fatal(err)
 		}
 		source := string(b)
-		_, err = golfcart.RunProgram(source)
+		_, err = golfcart.RunProgram(source, false)
 		if err != nil {
 			t.Errorf("RunProgram(%s): %v", cur, err)
 		}
@@ -43,7 +43,7 @@ func TestBadPrograms(t *testing.T) {
 			log.Fatal(err)
 		}
 		source := string(b)
-		_, err = golfcart.RunProgram(source)
+		_, err = golfcart.RunProgram(source, false)
 		if err == nil {
 			t.Errorf("RunProgram(%s): didn't throw an error", cur)
 		}

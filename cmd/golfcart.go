@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -9,7 +10,11 @@ import (
 )
 
 func main() {
-	file := os.Args[1]
+	var debug bool
+	flag.BoolVar(&debug, "debug", true, "Debug mode")
+	flag.Parse()
+
+	file := flag.Arg(0)
 	b, err := ioutil.ReadFile(file)
 	if err != nil {
 		fmt.Printf("while parsing %v: %v\n", file, err)
@@ -17,9 +22,9 @@ func main() {
 	}
 	source := string(b)
 
-	result, err := golfcart.RunProgram(source)
+	result, err := golfcart.RunProgram(source, debug)
 	if err != nil {
-		fmt.Printf("while parsing %v: %v\n", file, err)
+		fmt.Printf("while running %v: %v\n", file, err)
 		os.Exit(1)
 	}
 
