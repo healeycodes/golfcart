@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/alecthomas/participle/v2/lexer"
 )
 
 func InjectRuntime(context *Context) {
@@ -16,6 +18,7 @@ func InjectRuntime(context *Context) {
 }
 
 type NativeFunctionValue struct {
+	Pos  lexer.Position
 	name string
 	Exec func([]Value) (Value, error)
 }
@@ -25,7 +28,10 @@ func (nativeFunctionValue NativeFunctionValue) String() string {
 }
 
 func (nativeFunctionValue NativeFunctionValue) Equals(other Value) (bool, error) {
-	return nativeFunctionValue.name == nativeFunctionValue.name, nil
+	if otherNatVal, okNatVal := other.(NativeFunctionValue); okNatVal {
+		return nativeFunctionValue.name == otherNatVal.name, nil
+	}
+	return false, nil
 }
 
 func golfcartAssert(args []Value) (Value, error) {
@@ -37,7 +43,7 @@ func golfcartAssert(args []Value) (Value, error) {
 		return nil, err
 	}
 	if !equal {
-		return nil, errors.New("assert failed: " + args[0].String() + " != " + args[1].String())
+		return nil, errors.New("assert failed: " + args[0].String() + " == " + args[1].String())
 	}
 	return NilValue{}, nil
 }
@@ -64,9 +70,9 @@ func golfcartStr(args []Value) (Value, error) {
 	}
 	if boolValue, okBool := value.(BoolValue); okBool {
 		if boolValue.val {
-			return StringValue{val: []byte("true)")}, nil
+			return StringValue{val: []byte("true")}, nil
 		}
-		return StringValue{val: []byte("false)")}, nil
+		return StringValue{val: []byte("false")}, nil
 	}
 
 	return nil, errors.New("str() expects 1 argument of type string, number, or bool")

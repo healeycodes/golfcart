@@ -8,6 +8,3 @@ assert(b, 1)
 assert(b, c)
 
 assert([5] == [5], false)
-
-a = [0]
-assert(a.len == 1)
