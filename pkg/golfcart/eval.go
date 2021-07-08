@@ -471,7 +471,10 @@ func (call Call) Eval(frame *StackFrame) (Value, error) {
 		}
 		return value, nil
 	}
-	if listValue, okList := value.(ListValue); okList && access != nil {
+	if listValue, okList := value.(ListValue); okList {
+		if call.ComputedAccess != nil {
+			return listIndex(listValue, access)
+		}
 		return listAccess(listValue, access)
 	}
 	if dictValue, okDict := value.(DictValue); okDict {
@@ -502,10 +505,24 @@ func (call Call) Eval(frame *StackFrame) (Value, error) {
 }
 
 func listAccess(listValue ListValue, access Value) (Value, error) {
+	if strValue, okStr := access.(StringValue); okStr {
+		if strValue.val == "len" {
+			return NumberValue{val: float64(len(listValue.items))}, nil
+		}
+	}
+
+	value, err := golfcartType([]Value{access})
+	if err != nil {
+		return nil, err
+	}
+	return nil, errors.New("list doesn't have property: " + value.String())
+}
+
+func listIndex(listValue ListValue, access Value) (Value, error) {
 	if numValue, okNum := access.(NumberValue); okNum {
 		index := int(numValue.val)
 		if index < 0 || index > len(listValue.items)-1 {
-			return nil, fmt.Errorf("list access out of bounds: %v", index)
+			return nil, fmt.Errorf("list index out of bounds: %v", index)
 		}
 		return listValue.items[index], nil
 	}
@@ -514,7 +531,7 @@ func listAccess(listValue ListValue, access Value) (Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	return nil, errors.New("list access expects 1 argument of type number: not " + value.String())
+	return nil, errors.New("list index expects 1 argument of type number: not " + value.String())
 }
 
 func dictAccess(dictValue DictValue, access Value) (Value, error) {
