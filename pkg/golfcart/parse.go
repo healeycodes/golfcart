@@ -191,8 +191,8 @@ var (
 		"Root": {
 			{"comment", `//.*|/\*.*?\*/`, nil},
 			{"whitespace", `[\n\r\t ]+`, nil},
-			{"Int", `[\d]+`, nil},
 			{"Float", `[\d\.\d]+`, nil},
+			{"Int", `[\d]+`, nil},
 			{"String", `"([^"]*)"`, nil},
 			{"Ident", `[\w]+`, nil},
 			{"Punct", `[-[!*()+_={}\|:;"<,>./]|]`, nil},

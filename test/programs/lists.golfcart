@@ -9,5 +9,5 @@ assert(b, c)
 
 assert([5] == [5], false)
 
-// TODO: fix len of lists
-// [0].len
+a = [0]
+assert(a.len == 1)
