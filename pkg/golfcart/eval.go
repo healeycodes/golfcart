@@ -595,18 +595,21 @@ func (addition Addition) Eval(frame *StackFrame) (Value, error) {
 	leftStr, okLeft := left.(StringValue)
 	rightStr, okRight := right.(StringValue)
 	if addition.Op == "+" && (okLeft && !okRight || okRight && !okLeft) {
-		return nil, errors.New(addition.Multiplication.Pos.String() + " '+' only supported between strings")
+		return nil, errors.New(addition.Multiplication.Pos.String() +
+			"can't '+' one string and one non-string: [ " + left.String() + ", " + right.String() + " ]")
 	} else if addition.Op == "+" && (okLeft || okRight) {
 		return StringValue{val: append(leftStr.val, rightStr.val...)}, nil
 	}
 
 	leftNum, okLeft := left.(NumberValue)
 	if !okLeft {
-		return nil, errors.New(addition.Multiplication.Pos.String() + " '+' and '-' only supported between numbers")
+		return nil, errors.New(addition.Multiplication.Pos.String() +
+			"can't '+' one number and one non-number: [ " + left.String() + ", " + right.String() + " ]")
 	}
 	rightNum, okRight := right.(NumberValue)
 	if !okRight {
-		return nil, errors.New(addition.Next.Pos.String() + " '+' and '-' only supported between numbers")
+		return nil, errors.New(addition.Next.Pos.String() +
+			"can't '+' one number and one non-number: [ " + left.String() + ", " + right.String() + " ]")
 	}
 	if addition.Op == "+" {
 		return NumberValue{val: leftNum.val + rightNum.val}, nil
@@ -1072,9 +1075,16 @@ func (forExpression For) Eval(frame *StackFrame) (Value, error) {
 	}
 
 	for {
-		condition, err := forExpression.Condition.Eval(forFrame)
-		if err != nil {
-			return nil, err
+		var condition Value
+		var err error
+		if forExpression.Condition != nil {
+			condition, err = forExpression.Condition.Eval(forFrame)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			// Fake a condition for infinite loop variant `for {}`
+			condition = BoolValue{val: true}
 		}
 		if boolValue, okBool := condition.(BoolValue); okBool {
 			if boolValue.val {
@@ -1100,7 +1110,7 @@ func (forExpression For) Eval(frame *StackFrame) (Value, error) {
 			}
 			return nil, errors.New("condition expression of for loop should be of type bool not: " + valueType.String())
 		}
-		// ForWhile variants e.g. `for true {}` `for {}` don't have a post expression
+		// For-variants e.g. `for true {}` `for {}` don't have a post expression
 		if forExpression.Post != nil {
 			_, err = forExpression.Post.Eval(forFrame)
 			if err != nil {
@@ -1108,7 +1118,6 @@ func (forExpression For) Eval(frame *StackFrame) (Value, error) {
 			}
 		}
 	}
-
 	return NilValue{}, nil
 }
 

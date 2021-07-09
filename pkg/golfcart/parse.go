@@ -188,7 +188,7 @@ type ForWhile struct {
 	Pos lexer.Position
 
 	Init      []*Assignment `"for" (`
-	Condition *Expression   `@@`
+	Condition *Expression   `@@?`
 	Post      *Expression   ``
 	Body      []*Expression `"{" @@* "}" )`
 }

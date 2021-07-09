@@ -4,7 +4,7 @@ for j = 0; j < 5; j = j + 1 {
     i = i + 1
 }
 
-for j = 0;false ;nil  {
+for nil;false ;nil  {
     // Doesn't run
     assert(true, false)
 }
@@ -19,6 +19,9 @@ for true {
     // Doesn't run
     assert(true, false)
 }
+
+// Implicit infinite loop
+for { break }
 
 for i = 0; i < 1; i = i + 1 {
     continue

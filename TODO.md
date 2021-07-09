@@ -7,9 +7,6 @@ append, prepend, pop, pop_left
 `++i i++` or `+=`
 
 ```
-for {
-
-}
 for ident in expr {
 
 }
