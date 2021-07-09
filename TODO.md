@@ -1,4 +1,8 @@
+`in("") out("")`
+
 `++i i++`
+
+`name ~= /mads/i`
 
 For & additional forms:
 
