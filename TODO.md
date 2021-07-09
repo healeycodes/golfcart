@@ -1,16 +1,13 @@
+`[1] + [2]`
+
+append, prepend, pop, pop_left
+
 `in("") out("")`
 
-`++i i++`
-
-`name ~= /mads/i`
-
-For & additional forms:
+`++i i++` or `+=`
 
 ```
 for {
-
-}
-for 0..10 {
 
 }
 for ident in expr {
@@ -20,13 +17,6 @@ for ident, ident in expr {
 
 }
 ```
-
-## Other
-`load("math"`
-
-`load("./lib.golf")`
-
-`logf("%v", true)`
 
 `len()` for string, list, dict (keys)
 
