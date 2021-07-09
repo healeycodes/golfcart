@@ -5,3 +5,6 @@ assert(a[0], 5)
 b = [2]
 c = b[0]
 assert(b[0], c)
+
+d = [3]
+assert(type(d[0]), "number")

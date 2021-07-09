@@ -108,6 +108,14 @@ func unref(value Value) Value {
 	return value
 }
 
+func unwrap(value Value, frame *StackFrame) (Value, error) {
+	if idValue, okId := value.(IdentifierValue); okId {
+		return frame.Get(idValue)
+	}
+	value = unref(value)
+	return value, nil
+}
+
 type NilValue struct{}
 
 func (numberValue NilValue) String() string {
@@ -210,6 +218,22 @@ type ReturnValue struct {
 
 func (returnValue ReturnValue) Error() string {
 	return returnValue.pos.String() + " return expression used outside of a function"
+}
+
+type BreakValue struct {
+	pos lexer.Position
+}
+
+func (breakValue BreakValue) Error() string {
+	return breakValue.pos.String() + " break expression used outside of a for loop"
+}
+
+type ContinueValue struct {
+	pos lexer.Position
+}
+
+func (continueValue ContinueValue) Error() string {
+	return continueValue.pos.String() + " continue expression used outside of a for loop"
 }
 
 type FunctionValue struct {
@@ -500,6 +524,16 @@ func (comparison Comparison) Eval(frame *StackFrame) (Value, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	left, err = unwrap(left, frame)
+	if err != nil {
+		return nil, err
+	}
+	right, err = unwrap(right, frame)
+	if err != nil {
+		return nil, err
+	}
+
 	if leftNum, okNum := left.(NumberValue); okNum {
 		if rightNum, okNum := right.(NumberValue); okNum {
 			return BoolValue{val: comparison.Op == "<" && leftNum.val < rightNum.val ||
@@ -540,18 +574,13 @@ func (addition Addition) Eval(frame *StackFrame) (Value, error) {
 		return nil, err
 	}
 
-	if leftId, okLeft := left.(IdentifierValue); okLeft {
-		left, err = frame.Get(leftId)
-		if err != nil {
-			return nil, err
-		}
+	left, err = unwrap(left, frame)
+	if err != nil {
+		return nil, err
 	}
-
-	if rightId, okRight := right.(IdentifierValue); okRight {
-		right, err = frame.Get(rightId)
-		if err != nil {
-			return nil, err
-		}
+	right, err = unwrap(right, frame)
+	if err != nil {
+		return nil, err
 	}
 
 	leftStr, okLeft := left.(StringValue)
@@ -601,17 +630,13 @@ func (multiplication Multiplication) Eval(frame *StackFrame) (Value, error) {
 		return nil, err
 	}
 
-	if leftId, okLeft := left.(IdentifierValue); okLeft {
-		left, err = frame.Get(leftId)
-		if err != nil {
-			return nil, err
-		}
+	left, err = unwrap(left, frame)
+	if err != nil {
+		return nil, err
 	}
-	if rightId, okRight := right.(IdentifierValue); okRight {
-		right, err = frame.Get(rightId)
-		if err != nil {
-			return nil, err
-		}
+	right, err = unwrap(right, frame)
+	if err != nil {
+		return nil, err
 	}
 
 	leftNum, okLeft := left.(NumberValue)
@@ -642,31 +667,35 @@ func (unary Unary) Equals(other Value) (bool, error) {
 
 func (unary Unary) Eval(frame *StackFrame) (Value, error) {
 	if unary.Op == "!" {
-		_unary, err := unary.Unary.Eval(frame)
+		value, err := unary.Unary.Eval(frame)
 		if err != nil {
 			return nil, err
 		}
-		if boolValue, ok := _unary.(BoolValue); ok {
+		value, err = unwrap(value, frame)
+		if err != nil {
+			return nil, err
+		}
+		if boolValue, ok := value.(BoolValue); ok {
 			return BoolValue{val: !boolValue.val}, nil
 		}
 		return nil, errors.New(unary.Pos.String() + " expected bool after '!'")
 	}
 	if unary.Op == "-" {
-		_unary, err := unary.Unary.Eval(frame)
+		value, err := unary.Unary.Eval(frame)
 		if err != nil {
 			return nil, err
 		}
-		if numberValue, ok := _unary.(NumberValue); ok {
+		value, err = unwrap(value, frame)
+		if err != nil {
+			return nil, err
+		}
+		if numberValue, ok := value.(NumberValue); ok {
 			return NumberValue{val: -numberValue.val}, nil
 		}
 		return nil, errors.New(unary.Pos.String() + " expected number after '-'")
 	}
 
-	if unary.Primary != nil {
-		return unary.Primary.Eval(frame)
-	}
-
-	return nil, errors.New("unimplemented Unary Eval")
+	return unary.Primary.Eval(frame)
 }
 
 func (primary Primary) String() string {
@@ -698,6 +727,19 @@ func (primary Primary) Eval(frame *StackFrame) (Value, error) {
 			return nil, err
 		}
 		return nil, ReturnValue{pos: returnVal.Pos, val: value}
+	}
+	if primary.Break != nil {
+		return nil, BreakValue{pos: primary.Break.Pos}
+	}
+	if primary.Continue != nil {
+		return nil, BreakValue{pos: primary.Continue.Pos}
+	}
+	if forWhileExpression := primary.ForWhile; forWhileExpression != nil {
+		forExpression := For{
+			Condition: forWhileExpression.Condition,
+			Body:      forWhileExpression.Body,
+		}
+		return forExpression.Eval(frame)
 	}
 	if forExpression := primary.For; forExpression != nil {
 		return forExpression.Eval(frame)
@@ -884,7 +926,11 @@ func (call Call) Eval(frame *StackFrame) (Value, error) {
 			if err != nil {
 				return nil, err
 			}
-			args[i] = unref(result)
+			value, err := unwrap(result, frame)
+			if err != nil {
+				return nil, err
+			}
+			args[i] = value
 		}
 	}
 
@@ -996,7 +1042,7 @@ func dictAccess(dictValue DictValue, access Value) (Value, error) {
 }
 
 func (forExpression For) String() string {
-	return "for expression"
+	return "for loop"
 }
 
 func (forExpression For) Equals(other Value) (bool, error) {
@@ -1023,10 +1069,18 @@ func (forExpression For) Eval(frame *StackFrame) (Value, error) {
 			if boolValue.val {
 				for _, expr := range forExpression.Body {
 					_, err = (*expr).Eval(forFrame)
+					if _, okBreak := err.(BreakValue); okBreak {
+						return NilValue{}, nil
+					}
+					if _, okCont := err.(ContinueValue); okCont {
+						continue
+					}
 					if err != nil {
 						return nil, err
 					}
 				}
+			} else {
+				break
 			}
 		} else {
 			valueType, err := golfcartType([]Value{condition})
@@ -1035,22 +1089,13 @@ func (forExpression For) Eval(frame *StackFrame) (Value, error) {
 			}
 			return nil, errors.New("condition expression of for loop should be of type bool not: " + valueType.String())
 		}
-		post, err := forExpression.Post.Eval(forFrame)
-		if err != nil {
-			return nil, err
-		}
-		if boolValue, okBool := post.(BoolValue); okBool {
-			if boolValue.val {
-				continue
-			}
-		} else {
-			valueType, err := golfcartType([]Value{post})
+		// ForWhile variants e.g. `for true {}` `for {}` don't have a post expression
+		if forExpression.Post != nil {
+			_, err = forExpression.Post.Eval(forFrame)
 			if err != nil {
 				return nil, err
 			}
-			return nil, errors.New("post expression of for loop should be of type bool not: " + valueType.String())
 		}
-		break
 	}
 
 	return NilValue{}, nil

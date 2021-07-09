@@ -119,5 +119,7 @@ func golfcartType(args []Value) (Value, error) {
 		return StringValue{val: []byte("nil")}, nil
 	}
 
+	return StringValue{val: []byte(value.String())}, nil
+
 	panic("unreachable golfcartType")
 }

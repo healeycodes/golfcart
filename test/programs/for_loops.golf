@@ -3,3 +3,25 @@ for j = 0; j < 5; j = j + 1 {
     assert(i, j)
     i = i + 1
 }
+
+for j = 0;false ;nil  {
+    // Doesn't run
+    assert(true, false)
+}
+
+for false {
+    // Doesn't run
+    assert(true, false)
+}
+
+for true {
+    break
+    // Doesn't run
+    assert(true, false)
+}
+
+for i = 0; i < 1; i = i + 1 {
+    continue
+    // Doesn't run
+    assert(true, false)
+}

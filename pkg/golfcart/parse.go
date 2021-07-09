@@ -93,10 +93,10 @@ type Primary struct {
 	SubExpression   *Expression      `| "(" @@ ")"`
 	Call            *Call            `| @@`
 	For             *For             `| @@`
-	While           *While           `| @@`
+	ForWhile        *ForWhile        `| @@`
+	Return          *Return          `| @@`
 	Break           *Break           `| @@`
 	Continue        *Continue        `| @@`
-	Return          *Return          `| @@`
 	Number          *float64         `| @Float | @Int`
 	Str             *string          `| @String`
 	True            *bool            `| @"true"`
@@ -173,17 +173,19 @@ type Return struct {
 type For struct {
 	Pos lexer.Position
 
-	Init      []*Assignment `"for" ( @@* ("," @@ )* )* ";"`
+	Init      []*Assignment `"for" ( @@ ";"`
 	Condition *Expression   `@@ ";"`
 	Post      *Expression   `@@`
-	Body      []*Expression `"{" @@* "}"`
+	Body      []*Expression `"{" @@* "}" )`
 }
 
-type While struct {
+type ForWhile struct {
 	Pos lexer.Position
 
-	Condition *Expression   `"while" @@`
-	Body      []*Expression `"{" @@* "}"`
+	Init      []*Assignment `"for" (`
+	Condition *Expression   `@@`
+	Post      *Expression   ``
+	Body      []*Expression `"{" @@* "}" )`
 }
 
 var (
