@@ -1,10 +1,12 @@
+`++i i++`
+
 For & additional forms:
 
 ```
 for {
 
 }
-for true {
+for 0..10 {
 
 }
 for ident in expr {
@@ -16,6 +18,12 @@ for ident, ident in expr {
 ```
 
 ## Other
+`load("math"`
+
+`load("./lib.golf")`
+
+`logf("%v", true)`
+
 `len()` for string, list, dict (keys)
 
 `keys()` for list of dict keys
