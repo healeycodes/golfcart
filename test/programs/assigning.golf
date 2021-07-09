@@ -10,3 +10,8 @@ f = {a: 10}
 g = 20
 e["a"] = g
 assert(e.a, 20)
+
+// Deep assigning
+h = {j: {k: [0]}}
+h.j.k[0] = 1
+assert(h["j"]["k"][0], 1)

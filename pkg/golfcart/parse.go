@@ -144,11 +144,16 @@ type DictEntry struct {
 type Call struct {
 	Pos lexer.Position
 
-	Ident          *string       `( @Ident`
-	SubExpression  *Expression   `| "(" @@ ")" )`
+	Ident         *string     `( @Ident`
+	SubExpression *Expression `| "(" @@ ")" )`
+	CallChain     *CallChain  `@@`
+}
+
+type CallChain struct {
 	Parameters     *[]Expression `( "(" ( @@ ( "," @@ )* )? ")" `
 	Access         *string       `    | "." @Ident`
 	ComputedAccess *Expression   `    | "[" @@ "]" )`
+	Next           *CallChain    `@@?`
 }
 
 type Break struct {

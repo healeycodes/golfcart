@@ -84,6 +84,14 @@ type Value interface {
 	Equals(Value) (bool, error)
 }
 
+func formatValues(values []Value) string {
+	s := make([]string, len(values))
+	for i, value := range values {
+		s[i] = value.String()
+	}
+	return "[ " + strings.Join(s, ", ") + " ]"
+}
+
 type ReferenceValue struct {
 	val *Value
 }
@@ -155,7 +163,7 @@ type NumberValue struct {
 }
 
 func (numberValue NumberValue) String() string {
-	return fmt.Sprintf("%f", numberValue.val)
+	return nToS(numberValue.val)
 }
 
 func (numberValue NumberValue) Equals(other Value) (bool, error) {
@@ -252,7 +260,8 @@ func (functionValue FunctionValue) Equals(other Value) (bool, error) {
 
 func (functionValue FunctionValue) Exec(args []Value) (Value, error) {
 	if len(args) != len(functionValue.parameters) {
-		return nil, errors.New("function called with incorrect number of arguments")
+		return nil, errors.New("function called with incorrect number of arguments: wanted: " +
+			fmt.Sprint(len(functionValue.parameters)) + " got: " + formatValues(args))
 	}
 	for i, parameter := range functionValue.parameters {
 		functionValue.frame.Set(IdentifierValue{val: parameter}, args[i])
@@ -910,95 +919,97 @@ func (call Call) Eval(frame *StackFrame) (Value, error) {
 		if err != nil {
 			return nil, err
 		}
+		value, err = unwrap(value, frame)
+		if err != nil {
+			return nil, err
+		}
 	}
 	if subExpr := call.SubExpression; subExpr != nil {
 		value, err = subExpr.Eval(frame)
 		if err != nil {
 			return nil, err
 		}
+		value, err = unwrap(value, frame)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	var args []Value
-	if parameters := call.Parameters; parameters != nil {
-		args = make([]Value, len(*parameters))
-		for i, parameter := range *parameters {
-			result, err := parameter.Eval(frame)
+	chainCall := call.CallChain
+	for chainCall != nil {
+		value, err = unwrap(value, frame)
+		if err != nil {
+			return nil, err
+		}
+
+		var args []Value
+		if parameters := chainCall.Parameters; parameters != nil {
+			args = make([]Value, len(*parameters))
+			for i, parameter := range *parameters {
+				result, err := parameter.Eval(frame)
+				if err != nil {
+					return nil, err
+				}
+				argValue, err := unwrap(result, frame)
+				if err != nil {
+					return nil, err
+				}
+				args[i] = argValue
+			}
+		}
+
+		var access Value
+		if chainCall.Access != nil {
+			access = IdentifierValue{val: *chainCall.Access}
+		}
+		if chainCall.ComputedAccess != nil {
+			_value, err := chainCall.ComputedAccess.Eval(frame)
 			if err != nil {
 				return nil, err
 			}
-			value, err := unwrap(result, frame)
+			access = _value
+		}
+
+		if functionValue, okFunc := value.(FunctionValue); okFunc {
+			value, err = functionValue.Exec(args)
+			if returnValue, okRet := err.(ReturnValue); okRet {
+				value = returnValue.val
+			} else if err != nil {
+				return nil, err
+			}
+		}
+		if nativeFunctionValue, okNatFunc := value.(NativeFunctionValue); okNatFunc {
+			value, err = nativeFunctionValue.Exec(args)
 			if err != nil {
 				return nil, err
 			}
-			args[i] = value
+		}
+		if stringValue, okStr := value.(StringValue); okStr && access != nil {
+			value, err = stringAccess(stringValue, access)
+			if err != nil {
+				return nil, err
+			}
+		}
+		if listValue, okList := value.(ListValue); okList && access != nil {
+			value, err = listAccess(listValue, access)
+			if err != nil {
+				return nil, err
+			}
+		}
+		if dictValue, okDict := value.(DictValue); okDict && access != nil {
+			value, err = dictAccess(dictValue, access)
+			if err != nil {
+				return nil, err
+			}
+		}
+		if chainCall.Next != nil {
+			chainCall = chainCall.Next
+		} else {
+			chainCall = nil
 		}
 	}
 
-	var access Value
-	if call.Access != nil {
-		access = IdentifierValue{val: *call.Access}
-	}
-	if call.ComputedAccess != nil {
-		value, err := call.ComputedAccess.Eval(frame)
-		if err != nil {
-			return nil, err
-		}
-		access = value
-	}
-
-	if functionValue, okFunc := value.(FunctionValue); okFunc {
-		value, err := functionValue.Exec(args)
-		if returnValue, okRet := err.(ReturnValue); okRet {
-			return returnValue.val, nil
-		}
-		if err != nil {
-			return nil, err
-		}
-		return value, nil
-	}
-	if nativeFunctionValue, okNatFunc := value.(NativeFunctionValue); okNatFunc {
-		value, err := nativeFunctionValue.Exec(args)
-		if err != nil {
-			return nil, err
-		}
-		return value, nil
-	}
-	if stringValue, okStr := value.(StringValue); okStr && access != nil {
-		value, err := stringAccess(stringValue, access)
-		if err != nil {
-			return nil, err
-		}
-		return value, nil
-	}
-	if listValue, okList := value.(ListValue); okList && access != nil {
-		value, err := listAccess(listValue, access)
-		if err != nil {
-			return nil, err
-		}
-		return value, nil
-	}
-	if dictValue, okDict := value.(DictValue); okDict && access != nil {
-		value, err := dictAccess(dictValue, access)
-		if err != nil {
-			return nil, err
-		}
-		return value, nil
-	}
-
-	if call.Parameters != nil {
-		s := make([]string, len(args))
-		for i, arg := range args {
-			s[i] = arg.String()
-		}
-		return nil, errors.New("can't call " + value.String() + " with (" + strings.Join(s, ", ") + ")")
-	}
-	if call.Access != nil {
-		return nil, errors.New("can't access " + value.String() + " with ." + access.String())
-	}
-	if call.ComputedAccess != nil {
-		return nil, errors.New("can't access " + value.String() + " with [" + access.String() + "]")
-	}
-	panic("unreachable Call Eval")
+	return value, nil
 }
 
 func stringAccess(stringValue StringValue, access Value) (Value, error) {

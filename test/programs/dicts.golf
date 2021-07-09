@@ -11,3 +11,11 @@ assert(b, 2)
 assert(a.a, 2)
 
 assert({} == {}, false)
+
+// Call chaining
+f = {a: {b: 1}}
+f.a.b
+assert(f.a.b, 1)
+
+g = {"h": {"j": (n) => n + 1}}
+assert(g.h.j(3), 4)
