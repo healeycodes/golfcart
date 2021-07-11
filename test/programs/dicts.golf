@@ -19,3 +19,8 @@ assert(f.a.b, 1)
 
 g = {"h": {"j": (n) => n + 1}}
 assert(g.h.j(3), 4)
+
+l = {a: 1, b: 2}
+l.a = 3
+assert(l.a, 3)
+assert(l.b, 2)

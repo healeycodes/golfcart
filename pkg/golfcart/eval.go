@@ -45,9 +45,9 @@ func (frame *StackFrame) GetChild() *StackFrame {
 	return &childFrame
 }
 
-func (frame *StackFrame) Get(key Value) (Value, error) {
+func (frame *StackFrame) Get(key string) (Value, error) {
 	for {
-		value, ok := frame.values[key.String()]
+		value, ok := frame.values[key]
 		if ok {
 			return value, nil
 		}
@@ -57,16 +57,15 @@ func (frame *StackFrame) Get(key Value) (Value, error) {
 			break
 		}
 	}
-
-	return nil, errors.New("cannot find value for '" + key.String() + "'")
+	return nil, errors.New("cannot find value for '" + key + "'")
 }
 
-func (frame *StackFrame) Set(key Value, value Value) {
+func (frame *StackFrame) Set(key string, value Value) {
 	currentFrame := frame
 	for {
-		_, ok := frame.values[key.String()]
+		_, ok := frame.values[key]
 		if ok {
-			frame.values[key.String()] = value
+			frame.values[key] = value
 			return
 		}
 		if parent := frame.parent; parent != nil {
@@ -75,8 +74,7 @@ func (frame *StackFrame) Set(key Value, value Value) {
 			break
 		}
 	}
-
-	currentFrame.values[key.String()] = value
+	currentFrame.values[key] = value
 }
 
 type Value interface {
@@ -96,16 +94,11 @@ type ReferenceValue struct {
 	val *Value
 }
 
-func (refValue ReferenceValue) String() string {
+func (_ ReferenceValue) String() string {
 	return "reference"
 }
 
-func (refValue ReferenceValue) Equals(other Value) (bool, error) {
-	if otherRef, okRef := other.(ReferenceValue); okRef {
-		if otherRef.val != nil && refValue.val != nil {
-			return otherRef.val == refValue.val, nil
-		}
-	}
+func (_ ReferenceValue) Equals(other Value) (bool, error) {
 	return false, nil
 }
 
@@ -118,7 +111,7 @@ func unref(value Value) Value {
 
 func unwrap(value Value, frame *StackFrame) (Value, error) {
 	if idValue, okId := value.(IdentifierValue); okId {
-		return frame.Get(idValue)
+		return frame.Get(idValue.val)
 	}
 	value = unref(value)
 	return value, nil
@@ -150,8 +143,8 @@ func (identifierValue IdentifierValue) Equals(other Value) (bool, error) {
 		identifierValue.String() + " " + other.String())
 }
 
-func (identifierValue IdentifierValue) Eval(frame *StackFrame) (Value, error) {
-	value, err := frame.Get(identifierValue)
+func (idValue IdentifierValue) Eval(frame *StackFrame) (Value, error) {
+	value, err := frame.Get(idValue.val)
 	if err != nil {
 		return nil, err
 	}
@@ -264,7 +257,7 @@ func (functionValue FunctionValue) Exec(args []Value) (Value, error) {
 			fmt.Sprint(len(functionValue.parameters)) + " got: " + formatValues(args))
 	}
 	for i, parameter := range functionValue.parameters {
-		functionValue.frame.Set(IdentifierValue{val: parameter}, args[i])
+		functionValue.frame.Set(parameter, args[i])
 	}
 	var result Value
 	result = NilValue{}
@@ -279,40 +272,34 @@ func (functionValue FunctionValue) Exec(args []Value) (Value, error) {
 }
 
 type ListValue struct {
-	val []Value
+	val map[int]*Value
 }
 
 func (listValue ListValue) String() string {
-	s := ""
-	for _, item := range listValue.val {
-		s += item.String() + " "
+	formatted := make([]string, len(listValue.val))
+	for i, item := range listValue.val {
+		formatted[i] = (*item).String()
 	}
-	return "[ " + s + "]"
+	return "[" + strings.Join(formatted, ", ") + "]"
 }
 
 func (listValue ListValue) Equals(other Value) (bool, error) {
 	return false, nil
 }
 
+func (listValue ListValue) Append(other Value) {
+	listValue.val[len(listValue.val)] = &other
+}
+
 type DictValue struct {
 	entries map[string]*Value
 }
 
-func (dictValue *DictValue) GetRef(key Value) (Value, error) {
+func (dictValue *DictValue) Get(key Value) (*Value, error) {
 	value, ok := dictValue.entries[key.String()]
 	if ok {
-		return ReferenceValue{val: value}, nil
+		return value, nil
 	}
-
-	return nil, errors.New("cannot find value for key: " + key.String())
-}
-
-func (dictValue *DictValue) Get(key Value) (Value, error) {
-	value, ok := dictValue.entries[key.String()]
-	if ok {
-		return *value, nil
-	}
-
 	return nil, errors.New("cannot find value for key: " + key.String())
 }
 
@@ -321,7 +308,12 @@ func (dictValue *DictValue) Set(key Value, value Value) {
 }
 
 func (dictValue DictValue) String() string {
-	return "dictValue"
+	s := "["
+	for key, value := range dictValue.entries {
+		s += "{" + key + ": " + (*value).String() + "}, "
+	}
+	s += "]"
+	return s
 }
 
 func (dictValue DictValue) Equals(other Value) (bool, error) {
@@ -370,8 +362,8 @@ func (expr Expression) Eval(frame *StackFrame) (Value, error) {
 		if err != nil {
 			return nil, err
 		}
-		if identifierValue, ok := result.(IdentifierValue); ok {
-			value, err := frame.Get(identifierValue)
+		if idValue, ok := result.(IdentifierValue); ok {
+			value, err := frame.Get(idValue.val)
 			if err != nil {
 				return nil, err
 			}
@@ -409,7 +401,7 @@ func (assignment Assignment) Eval(frame *StackFrame) (Value, error) {
 	}
 	if assignment.Op == "=" {
 		if idValue, okId := right.(IdentifierValue); okId {
-			right, err = frame.Get(idValue)
+			right, err = frame.Get(idValue.val)
 			if err != nil {
 				return nil, err
 			}
@@ -419,7 +411,7 @@ func (assignment Assignment) Eval(frame *StackFrame) (Value, error) {
 			return NilValue{}, nil
 		}
 		if leftId, okId := left.(IdentifierValue); okId {
-			frame.Set(leftId, right)
+			frame.Set(leftId.val, right)
 			return NilValue{}, nil
 		}
 		return nil, errors.New("can't assign to non-identifier: " + left.String())
@@ -485,16 +477,18 @@ func (equality Equality) Eval(frame *StackFrame) (Value, error) {
 	if err != nil {
 		return nil, err
 	}
+	left = unref(left)
+	right = unref(right)
 
 	if idValue, okId := left.(IdentifierValue); okId {
-		value, err := frame.Get(idValue)
+		value, err := frame.Get(idValue.val)
 		if err != nil {
 			return nil, err
 		}
 		left = value
 	}
 	if idValue, okId := right.(IdentifierValue); okId {
-		value, err := frame.Get(idValue)
+		value, err := frame.Get(idValue.val)
 		if err != nil {
 			return nil, err
 		}
@@ -592,32 +586,42 @@ func (addition Addition) Eval(frame *StackFrame) (Value, error) {
 		return nil, err
 	}
 
+	err_msg := fmt.Sprintf(" '+' can only be used between [string, string], [number, number],"+
+		"[list, list], not: [%v, %v]", left.String(), right.String())
+
 	leftStr, okLeft := left.(StringValue)
 	rightStr, okRight := right.(StringValue)
 	if addition.Op == "+" && (okLeft && !okRight || okRight && !okLeft) {
-		return nil, errors.New(addition.Multiplication.Pos.String() +
-			"can't '+' one string and one non-string: [ " + left.String() + ", " + right.String() + " ]")
-	} else if addition.Op == "+" && (okLeft || okRight) {
-		return StringValue{val: append(leftStr.val, rightStr.val...)}, nil
+		return nil, errors.New(addition.Multiplication.Pos.String() + err_msg)
+	} else if addition.Op == "+" && okLeft && okRight {
+		return StringValue{val: append([]byte{}, append(leftStr.val, rightStr.val...)...)}, nil
+	}
+
+	leftList, okLeft := left.(ListValue)
+	rightList, okRight := right.(ListValue)
+	if addition.Op == "+" && (okLeft && !okRight || okRight && !okLeft) {
+		return nil, errors.New(addition.Multiplication.Pos.String() + err_msg)
+	} else if addition.Op == "+" && okLeft && okRight {
+		newMap := ListValue{val: map[int]*Value{}}
+		for i, value := range leftList.val {
+			newMap.val[i] = value
+		}
+		len := len(newMap.val)
+		for i, value := range rightList.val {
+			newMap.val[i+len] = value
+		}
+		return newMap, nil
 	}
 
 	leftNum, okLeft := left.(NumberValue)
-	if !okLeft {
-		return nil, errors.New(addition.Multiplication.Pos.String() +
-			"can't '+' one number and one non-number: [ " + left.String() + ", " + right.String() + " ]")
-	}
 	rightNum, okRight := right.(NumberValue)
-	if !okRight {
-		return nil, errors.New(addition.Next.Pos.String() +
-			"can't '+' one number and one non-number: [ " + left.String() + ", " + right.String() + " ]")
-	}
-	if addition.Op == "+" {
+	if addition.Op == "+" && (okLeft && !okRight || okRight && !okLeft) {
+		return nil, errors.New(addition.Multiplication.Pos.String() + err_msg)
+	} else if addition.Op == "+" && okLeft && okRight {
 		return NumberValue{val: leftNum.val + rightNum.val}, nil
-	}
-	if addition.Op == "-" {
+	} else if addition.Op == "-" && okLeft && okRight {
 		return NumberValue{val: leftNum.val - rightNum.val}, nil
 	}
-
 	panic("unreachable Addition Eval")
 }
 
@@ -665,7 +669,6 @@ func (multiplication Multiplication) Eval(frame *StackFrame) (Value, error) {
 	if multiplication.Op == "/" {
 		return NumberValue{val: leftNum.val / rightNum.val}, nil
 	}
-
 	panic("unreachable Multiplication Eval")
 }
 
@@ -706,7 +709,6 @@ func (unary Unary) Eval(frame *StackFrame) (Value, error) {
 		}
 		return nil, errors.New(unary.Pos.String() + " expected number after '-'")
 	}
-
 	return unary.Primary.Eval(frame)
 }
 
@@ -856,8 +858,7 @@ func (dictLiteral DictLiteral) Equals(other Value) (bool, error) {
 }
 
 func (dictLiteral DictLiteral) Eval(frame *StackFrame) (Value, error) {
-	entries := make(map[string]*Value)
-	dictValue := DictValue{entries: entries}
+	dictValue := DictValue{entries: make(map[string]*Value)}
 	if dictLiteral.DictEntry != nil {
 		for _, dictEntry := range *dictLiteral.DictEntry {
 			var key Value
@@ -891,16 +892,15 @@ func (listLiteral ListLiteral) Equals(other Value) (bool, error) {
 }
 
 func (listLiteral ListLiteral) Eval(frame *StackFrame) (Value, error) {
-	values := make([]Value, 0)
+	values := make(map[int]*Value, 0)
 	if listLiteral.Expressions != nil {
 		for _, expression := range *listLiteral.Expressions {
 			result, err := expression.Eval(frame)
 			if err != nil {
 				return nil, err
 			}
-			values = append(values, result)
+			values[len(values)] = &result
 		}
-		return ListValue{val: values}, nil
 	}
 	return ListValue{val: values}, nil
 }
@@ -915,14 +915,11 @@ func (call Call) Equals(other Value) (bool, error) {
 
 func (call Call) Eval(frame *StackFrame) (Value, error) {
 	// TODO: pass the cursor location (call.Pos) for better errors?
+	var id string
 	var value Value
 	var err error
 	if ident := call.Ident; ident != nil {
-		value, err = frame.Get(IdentifierValue{val: *ident})
-		if err != nil {
-			return nil, err
-		}
-		value, err = unwrap(value, frame)
+		value, err = frame.Get(*ident)
 		if err != nil {
 			return nil, err
 		}
@@ -932,32 +929,17 @@ func (call Call) Eval(frame *StackFrame) (Value, error) {
 		if err != nil {
 			return nil, err
 		}
-		value, err = unwrap(value, frame)
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	chainCall := call.CallChain
 	for chainCall != nil {
-		value, err = unwrap(value, frame)
-		if err != nil {
-			return nil, err
-		}
+		value = unref(value)
 
 		var args []Value
 		if parameters := chainCall.Parameters; parameters != nil {
-			args = make([]Value, len(*parameters))
-			for i, parameter := range *parameters {
-				result, err := parameter.Eval(frame)
-				if err != nil {
-					return nil, err
-				}
-				argValue, err := unwrap(result, frame)
-				if err != nil {
-					return nil, err
-				}
-				args[i] = argValue
+			args, err = parseArgs(chainCall.Parameters, frame)
+			if err != nil {
+				return nil, err
 			}
 		}
 
@@ -966,13 +948,33 @@ func (call Call) Eval(frame *StackFrame) (Value, error) {
 			access = IdentifierValue{val: *chainCall.Access}
 		}
 		if chainCall.ComputedAccess != nil {
-			_value, err := chainCall.ComputedAccess.Eval(frame)
+			access, err = chainCall.ComputedAccess.Eval(frame)
 			if err != nil {
 				return nil, err
 			}
-			access = _value
 		}
 
+		if listValue, okList := value.(ListValue); okList && access != nil {
+			if idVal, okId := access.(IdentifierValue); okId {
+				if idVal.val == "append" {
+					err = listAppend(listValue, chainCall, id, frame)
+					if err != nil {
+						return nil, err
+					}
+					return NilValue{}, nil
+				}
+			}
+			value, err = listAccess(listValue, access)
+			if err != nil {
+				return nil, err
+			}
+		}
+		if dictValue, okDict := value.(DictValue); okDict && access != nil {
+			value, err = dictAccess(dictValue, access)
+			if err != nil {
+				return nil, err
+			}
+		}
 		if functionValue, okFunc := value.(FunctionValue); okFunc {
 			value, err = functionValue.Exec(args)
 			if returnValue, okRet := err.(ReturnValue); okRet {
@@ -993,18 +995,6 @@ func (call Call) Eval(frame *StackFrame) (Value, error) {
 				return nil, err
 			}
 		}
-		if listValue, okList := value.(ListValue); okList && access != nil {
-			value, err = listAccess(listValue, access)
-			if err != nil {
-				return nil, err
-			}
-		}
-		if dictValue, okDict := value.(DictValue); okDict && access != nil {
-			value, err = dictAccess(dictValue, access)
-			if err != nil {
-				return nil, err
-			}
-		}
 		if chainCall.Next != nil {
 			chainCall = chainCall.Next
 		} else {
@@ -1013,6 +1003,19 @@ func (call Call) Eval(frame *StackFrame) (Value, error) {
 	}
 
 	return value, nil
+}
+
+func parseArgs(expressions *[]Expression, frame *StackFrame) ([]Value, error) {
+	args := make([]Value, len(*expressions))
+	for i, parameter := range *expressions {
+		result, err := parameter.Eval(frame)
+		if err != nil {
+			return nil, err
+		}
+		argValue := unref(result)
+		args[i] = argValue
+	}
+	return args, nil
 }
 
 func stringAccess(stringValue StringValue, access Value) (Value, error) {
@@ -1037,22 +1040,34 @@ func listAccess(listValue ListValue, access Value) (Value, error) {
 		if index < 0 || index > len(listValue.val)-1 {
 			return nil, fmt.Errorf("list access out of bounds: %v", index)
 		}
-		return ReferenceValue{val: &listValue.val[index]}, nil
+		return ReferenceValue{val: listValue.val[index]}, nil
 	}
 
 	value, err := golfcartType([]Value{access})
 	if err != nil {
 		return nil, err
 	}
-	return nil, errors.New("list access expects 1 argument of type number: not [" + value.String() + "]")
+	return nil, errors.New("list access expects 1 argument of type number: not " + value.String())
+}
+
+func listAppend(listValue ListValue, chainCall *CallChain, id string, frame *StackFrame) error {
+	if chainCall.Next == nil || chainCall.Next.Parameters == nil || len(*chainCall.Next.Parameters) != 1 {
+		return errors.New("append expects 1 argument")
+	}
+	args, err := parseArgs(chainCall.Next.Parameters, frame)
+	if err != nil {
+		return err
+	}
+	listValue.Append(args[0])
+	return nil
 }
 
 func dictAccess(dictValue DictValue, access Value) (Value, error) {
-	value, err := dictValue.GetRef(access)
+	value, err := dictValue.Get(access)
 	if err != nil {
 		return nil, err
 	}
-	return value, nil
+	return ReferenceValue{val: value}, nil
 }
 
 func (forExpression For) String() string {

@@ -9,12 +9,16 @@ import (
 	"github.com/alecthomas/participle/v2/lexer"
 )
 
+func setNativeFunc(key string, nativeFunc Value, frame *StackFrame) {
+	frame.values[key] = nativeFunc
+}
+
 func InjectRuntime(context *Context) {
-	context.stackFrame.values["assert"] = NativeFunctionValue{name: "assert", Exec: golfcartAssert}
-	context.stackFrame.values["log"] = NativeFunctionValue{name: "log", Exec: golfcartLog}
-	context.stackFrame.values["type"] = NativeFunctionValue{name: "type", Exec: golfcartType}
-	context.stackFrame.values["str"] = NativeFunctionValue{name: "str", Exec: golfcartStr}
-	context.stackFrame.values["num"] = NativeFunctionValue{name: "num", Exec: golfcartNum}
+	setNativeFunc("assert", NativeFunctionValue{name: "assert", Exec: golfcartAssert}, &context.stackFrame)
+	setNativeFunc("log", NativeFunctionValue{name: "log", Exec: golfcartLog}, &context.stackFrame)
+	setNativeFunc("type", NativeFunctionValue{name: "type", Exec: golfcartType}, &context.stackFrame)
+	setNativeFunc("str", NativeFunctionValue{name: "str", Exec: golfcartStr}, &context.stackFrame)
+	setNativeFunc("num", NativeFunctionValue{name: "num", Exec: golfcartNum}, &context.stackFrame)
 }
 
 type NativeFunctionValue struct {

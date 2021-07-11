@@ -1,6 +1,6 @@
-`[1] + [2]`
+parse/eval Literals earlier
 
-append, prepend, pop, pop_left
+prepend, pop, pop_left
 
 `in("") out("")`
 

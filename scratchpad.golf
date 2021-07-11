@@ -1,3 +1,5 @@
-a = [1]
-a[0] = 2
-a
+// Call chaining
+f = {a: {b: 1}}
+assert(f.a.b, 1)
+f.a.b = 2
+f.a.b
