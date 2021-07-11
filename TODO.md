@@ -1,9 +1,3 @@
-parse/eval Literals earlier
-
-pop_left
-
-`in("") out("")`
-
 `++i i++` or `+=`
 
 ```

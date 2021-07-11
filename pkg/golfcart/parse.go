@@ -86,23 +86,27 @@ type Unary struct {
 type Primary struct {
 	Pos lexer.Position
 
-	If              *If              `@@`
-	FunctionLiteral *FunctionLiteral `| @@`
+	If            *If          `@@`
+	DataLiteral   *DataLiteral `| @@`
+	SubExpression *Expression  `| "(" @@ ")"`
+	Call          *Call        `| @@`
+	For           *For         `| @@`
+	ForWhile      *ForWhile    `| @@`
+	Return        *Return      `| @@`
+	Break         *Break       `| @@`
+	Continue      *Continue    `| @@`
+	Number        *float64     `| @Float | @Int`
+	Str           *string      `| @String`
+	True          *bool        `| @"true"`
+	False         *bool        `| @"false"`
+	Nil           *bool        `| @"nil"`
+	Ident         *string      `| @Ident`
+}
+
+type DataLiteral struct {
+	FunctionLiteral *FunctionLiteral `@@`
 	ListLiteral     *ListLiteral     `| @@`
 	DictLiteral     *DictLiteral     `| @@`
-	SubExpression   *Expression      `| "(" @@ ")"`
-	Call            *Call            `| @@`
-	For             *For             `| @@`
-	ForWhile        *ForWhile        `| @@`
-	Return          *Return          `| @@`
-	Break           *Break           `| @@`
-	Continue        *Continue        `| @@`
-	Number          *float64         `| @Float | @Int`
-	Str             *string          `| @String`
-	True            *bool            `| @"true"`
-	False           *bool            `| @"false"`
-	Nil             *bool            `| @"nil"`
-	Ident           *string          `| @Ident`
 }
 
 type If struct {

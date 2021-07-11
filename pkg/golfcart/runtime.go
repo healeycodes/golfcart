@@ -1,8 +1,10 @@
 package golfcart
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 
@@ -15,6 +17,7 @@ func setNativeFunc(key string, nativeFunc Value, frame *StackFrame) {
 
 func InjectRuntime(context *Context) {
 	setNativeFunc("assert", NativeFunctionValue{name: "assert", Exec: golfcartAssert}, &context.stackFrame)
+	setNativeFunc("in", NativeFunctionValue{name: "in", Exec: golfcartIn}, &context.stackFrame)
 	setNativeFunc("log", NativeFunctionValue{name: "log", Exec: golfcartLog}, &context.stackFrame)
 	setNativeFunc("type", NativeFunctionValue{name: "type", Exec: golfcartType}, &context.stackFrame)
 	setNativeFunc("str", NativeFunctionValue{name: "str", Exec: golfcartStr}, &context.stackFrame)
@@ -51,6 +54,12 @@ func golfcartAssert(args []Value) (Value, error) {
 		return nil, errors.New("assert failed: " + args[0].String() + " == " + args[1].String())
 	}
 	return NilValue{}, nil
+}
+
+func golfcartIn(args []Value) (Value, error) {
+	scanner := bufio.NewScanner(os.Stdin)
+	scanner.Scan()
+	return StringValue{val: []byte(scanner.Text())}, nil
 }
 
 func golfcartLog(args []Value) (Value, error) {
@@ -108,6 +117,8 @@ func golfcartType(args []Value) (Value, error) {
 	}
 	value := args[0]
 	switch value.(type) {
+	case IdentifierValue:
+		return StringValue{val: []byte("identifier")}, nil
 	case StringValue:
 		return StringValue{val: []byte("string")}, nil
 	case NumberValue:

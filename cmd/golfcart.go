@@ -10,6 +10,7 @@ import (
 )
 
 func main() {
+	println(golfcart.GetGrammer())
 	var debug bool
 	flag.BoolVar(&debug, "debug", true, "Debug mode")
 	flag.Parse()

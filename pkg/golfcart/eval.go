@@ -322,16 +322,16 @@ type DictValue struct {
 	val map[string]*Value
 }
 
-func (dictValue *DictValue) Get(key Value) (*Value, error) {
-	value, ok := dictValue.val[key.String()]
+func (dictValue *DictValue) Get(key string) (*Value, error) {
+	value, ok := dictValue.val[key]
 	if ok {
 		return value, nil
 	}
-	return nil, errors.New("cannot find value for key: " + key.String())
+	return nil, errors.New("cannot find value for key: " + key)
 }
 
-func (dictValue *DictValue) Set(key Value, value Value) {
-	dictValue.val[key.String()] = &value
+func (dictValue *DictValue) Set(key string, value Value) {
+	dictValue.val[key] = &value
 }
 
 func (dictValue DictValue) String() string {
@@ -747,14 +747,16 @@ func (primary Primary) Eval(frame *StackFrame) (Value, error) {
 	if ifExpression := primary.If; ifExpression != nil {
 		return ifExpression.Eval(frame)
 	}
-	if functionLiteral := primary.FunctionLiteral; functionLiteral != nil {
-		return functionLiteral.Eval(frame)
-	}
-	if listLiteral := primary.ListLiteral; listLiteral != nil {
-		return listLiteral.Eval(frame)
-	}
-	if dictLiteral := primary.DictLiteral; dictLiteral != nil {
-		return dictLiteral.Eval(frame)
+	if primary.DataLiteral != nil {
+		if functionLiteral := primary.DataLiteral.FunctionLiteral; functionLiteral != nil {
+			return functionLiteral.Eval(frame)
+		}
+		if listLiteral := primary.DataLiteral.ListLiteral; listLiteral != nil {
+			return listLiteral.Eval(frame)
+		}
+		if dictLiteral := primary.DataLiteral.DictLiteral; dictLiteral != nil {
+			return dictLiteral.Eval(frame)
+		}
 	}
 	if subExpression := primary.SubExpression; subExpression != nil {
 		return subExpression.Eval(frame)
@@ -888,15 +890,17 @@ func (dictLiteral DictLiteral) Eval(frame *StackFrame) (Value, error) {
 	dictValue := DictValue{val: make(map[string]*Value)}
 	if dictLiteral.DictEntry != nil {
 		for _, dictEntry := range *dictLiteral.DictEntry {
-			var key Value
-			var err error
+			var key string
 			if dictEntry.Key != nil {
-				key, err = dictEntry.Key.Eval(frame)
+				value, err := dictEntry.Key.Eval(frame)
 				if err != nil {
 					return nil, err
 				}
+				if strValue, okStr := value.(StringValue); okStr {
+					key = string(strValue.val)
+				}
 			} else if dictEntry.Ident != nil {
-				key = IdentifierValue{val: *dictEntry.Ident}
+				key = *dictEntry.Ident
 			}
 
 			value, err := dictEntry.Value.Eval(frame)
@@ -1115,7 +1119,19 @@ func listPrepend(listValue ListValue, chainCall *CallChain, frame *StackFrame) e
 }
 
 func dictAccess(dictValue DictValue, access Value) (Value, error) {
-	value, err := dictValue.Get(access)
+	var key string
+	if strValue, okStr := access.(StringValue); okStr {
+		key = string(strValue.val)
+	} else if idValue, okId := access.(IdentifierValue); okId {
+		key = string(idValue.val)
+	} else {
+		golfType, err := golfcartType([]Value{idValue})
+		if err != nil {
+			return nil, err
+		}
+		return nil, errors.New("Only strings are allowed as dict keys, not: " + golfType.String())
+	}
+	value, err := dictValue.Get(key)
 	if err != nil {
 		return nil, err
 	}
