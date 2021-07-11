@@ -23,6 +23,8 @@ func InjectRuntime(context *Context) {
 	setNativeFunc("str", NativeFunctionValue{name: "str", Exec: golfcartStr}, &context.stackFrame)
 	setNativeFunc("num", NativeFunctionValue{name: "num", Exec: golfcartNum}, &context.stackFrame)
 	setNativeFunc("len", NativeFunctionValue{name: "len", Exec: golfcartLen}, &context.stackFrame)
+	setNativeFunc("keys", NativeFunctionValue{name: "keys", Exec: golfcartKeys}, &context.stackFrame)
+	setNativeFunc("values", NativeFunctionValue{name: "values", Exec: golfcartValues}, &context.stackFrame)
 }
 
 type NativeFunctionValue struct {
@@ -152,4 +154,41 @@ func golfcartLen(args []Value) (Value, error) {
 		return NumberValue{val: float64(len(dictVal.val))}, nil
 	}
 	return nil, errors.New("len() expects 1 argument of type string, list, or dict")
+}
+
+func golfcartKeys(args []Value) (Value, error) {
+	if len(args) != 1 {
+		return nil, errors.New("keys() expects 1 argument of type dict")
+	}
+	value := args[0]
+	if dictVal, okDict := value.(DictValue); okDict {
+		keys := make(map[int]*Value, len(dictVal.val))
+		i := 0
+		for k := range dictVal.val {
+			var value Value
+			value = StringValue{val: []byte(k)}
+			keys[i] = &value
+			i++
+		}
+		return ListValue{val: keys}, nil
+	}
+	return nil, errors.New("keys() expects 1 argument of type dict")
+}
+
+func golfcartValues(args []Value) (Value, error) {
+	if len(args) != 1 {
+		return nil, errors.New("values() expects 1 argument of type dict")
+	}
+	value := args[0]
+	if dictVal, okDict := value.(DictValue); okDict {
+		values := make(map[int]*Value, len(dictVal.val))
+		i := 0
+		for _, v := range dictVal.val {
+			valueCopy := *v
+			values[i] = &valueCopy
+			i++
+		}
+		return ListValue{val: values}, nil
+	}
+	return nil, errors.New("values() expects 1 argument of type dict")
 }

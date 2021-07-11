@@ -1,2 +1,6 @@
-g = () => for i = 0; i < 2; i = i + 1 { i }
-assert(g(), 2)
+// Keys, value
+d = {}
+assert(len(keys(d)), 0)
+d.a = "some key"
+log(keys(d))
+assert(keys(d)[0], "a")

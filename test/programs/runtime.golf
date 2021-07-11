@@ -27,6 +27,14 @@ assert(len([1]), 1)
 assert(len("ab"), 2)
 assert(len({a: 3, b: 4, c: 5}), 3)
 
+// Keys, values
+d = {}
+assert(len(keys(d)), 0)
+assert(len(values(d)), 0)
+d.a = "some value"
+assert(keys(d)[0], "a")
+assert(values(d)[0], "some value")
+
 // Logging
 log(a)
 log(a, b)

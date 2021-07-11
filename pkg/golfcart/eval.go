@@ -330,6 +330,15 @@ func (dictValue *DictValue) Get(key string) (*Value, error) {
 	return nil, errors.New("cannot find value for key: " + key)
 }
 
+func (dictValue *DictValue) GetOrSet(key string, newValue *Value) *Value {
+	existingValue, ok := dictValue.val[key]
+	if ok {
+		return existingValue
+	}
+	dictValue.val[key] = newValue
+	return newValue
+}
+
 func (dictValue *DictValue) Set(key string, value Value) {
 	dictValue.val[key] = &value
 }
@@ -964,7 +973,6 @@ func (call Call) Eval(frame *StackFrame) (Value, error) {
 	chainCall := call.CallChain
 	for chainCall != nil {
 		value = unref(value)
-
 		var args []Value
 		if parameters := chainCall.Parameters; parameters != nil {
 			args, err = parseArgs(chainCall.Parameters, frame)
@@ -1131,10 +1139,9 @@ func dictAccess(dictValue DictValue, access Value) (Value, error) {
 		}
 		return nil, errors.New("Only strings are allowed as dict keys, not: " + golfType.String())
 	}
-	value, err := dictValue.Get(key)
-	if err != nil {
-		return nil, err
-	}
+	var newValue Value
+	newValue = NilValue{}
+	value := dictValue.GetOrSet(key, &newValue)
 	return ReferenceValue{val: value}, nil
 }
 
