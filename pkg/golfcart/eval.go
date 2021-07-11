@@ -1147,6 +1147,7 @@ func (forExpression For) Equals(other Value) (bool, error) {
 }
 
 func (forExpression For) Eval(frame *StackFrame) (Value, error) {
+	iterations := NumberValue{val: 0}
 	forFrame := frame.GetChild()
 	if forExpression.Init != nil {
 		for _, assignExpr := range forExpression.Init {
@@ -1156,7 +1157,6 @@ func (forExpression For) Eval(frame *StackFrame) (Value, error) {
 			}
 		}
 	}
-
 	for {
 		var condition Value
 		var err error
@@ -1171,10 +1171,11 @@ func (forExpression For) Eval(frame *StackFrame) (Value, error) {
 		}
 		if boolValue, okBool := condition.(BoolValue); okBool {
 			if boolValue.val {
+				iterations.val++
 				for _, expr := range forExpression.Body {
 					_, err = (*expr).Eval(forFrame)
 					if _, okBreak := err.(BreakValue); okBreak {
-						return NilValue{}, nil
+						return iterations, nil
 					}
 					if _, okCont := err.(ContinueValue); okCont {
 						continue
@@ -1201,7 +1202,7 @@ func (forExpression For) Eval(frame *StackFrame) (Value, error) {
 			}
 		}
 	}
-	return NilValue{}, nil
+	return iterations, nil
 }
 
 func RunProgram(source string, debug bool) (*string, error) {

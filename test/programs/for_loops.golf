@@ -28,3 +28,9 @@ for i = 0; i < 1; i = i + 1 {
     // Doesn't run
     assert(true, false)
 }
+
+f = () => for true {break}
+assert(f(), 1)
+
+g = () => for i = 0; i < 2; i = i + 1 {}
+assert(g(), 2)
