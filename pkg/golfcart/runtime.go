@@ -10,7 +10,7 @@ import (
 )
 
 func setNativeFunc(key string, nativeFunc Value, frame *StackFrame) {
-	frame.values[key] = nativeFunc
+	frame.entries[key] = nativeFunc
 }
 
 func InjectRuntime(context *Context) {
@@ -19,6 +19,7 @@ func InjectRuntime(context *Context) {
 	setNativeFunc("type", NativeFunctionValue{name: "type", Exec: golfcartType}, &context.stackFrame)
 	setNativeFunc("str", NativeFunctionValue{name: "str", Exec: golfcartStr}, &context.stackFrame)
 	setNativeFunc("num", NativeFunctionValue{name: "num", Exec: golfcartNum}, &context.stackFrame)
+	setNativeFunc("len", NativeFunctionValue{name: "len", Exec: golfcartLen}, &context.stackFrame)
 }
 
 type NativeFunctionValue struct {
@@ -122,8 +123,22 @@ func golfcartType(args []Value) (Value, error) {
 	case NilValue:
 		return StringValue{val: []byte("nil")}, nil
 	}
+	return nil, errors.New("unknown type")
+}
 
-	return StringValue{val: []byte(value.String())}, nil
-
-	panic("unreachable golfcartType")
+func golfcartLen(args []Value) (Value, error) {
+	if len(args) != 1 {
+		return nil, errors.New("len() expects 1 argument of type string, list, or dict")
+	}
+	value := args[0]
+	if stringVal, okStr := value.(StringValue); okStr {
+		return NumberValue{val: float64(len(stringVal.val))}, nil
+	}
+	if listVal, okList := value.(ListValue); okList {
+		return NumberValue{val: float64(len(listVal.val))}, nil
+	}
+	if dictVal, okDict := value.(DictValue); okDict {
+		return NumberValue{val: float64(len(dictVal.val))}, nil
+	}
+	return nil, errors.New("len() expects 1 argument of type string, list, or dict")
 }

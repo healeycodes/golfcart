@@ -22,6 +22,11 @@ assert(type({}), "dict")
 assert(type(()=>nil), "function")
 assert(type(assert), "function")
 
+// Len
+assert(len([1]), 1)
+assert(len("ab"), 2)
+assert(len({a: 3, b: 4, c: 5}), 3)
+
 // Logging
 log(a)
 log(a, b)

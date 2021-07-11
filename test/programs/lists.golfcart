@@ -27,3 +27,18 @@ assert(h[1], -1)
 j = [5]
 j[0] = 6
 assert(j[0], 6)
+
+l = [0]
+l.prepend(-1)
+assert(l[0], -1)
+assert(l[1], 0)
+
+m = ["a", "b"]
+n = m.pop()
+assert(n, "b")
+assert(len(l), 1)
+
+o = ["a", "b"]
+p = m.pop_left()
+assert(p, "a")
+assert(len(o), 1)

@@ -1,6 +1,6 @@
 parse/eval Literals earlier
 
-prepend, pop, pop_left
+pop_left
 
 `in("") out("")`
 
@@ -14,8 +14,6 @@ for ident, ident in expr {
 
 }
 ```
-
-`len()` for string, list, dict (keys)
 
 `keys()` for list of dict keys
 

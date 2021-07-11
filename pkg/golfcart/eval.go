@@ -14,19 +14,19 @@ type Context struct {
 }
 
 func (context *Context) Init() {
-	context.stackFrame = StackFrame{values: make(map[string]Value)}
+	context.stackFrame = StackFrame{entries: make(map[string]Value)}
 }
 
 type StackFrame struct {
-	values map[string]Value
-	parent *StackFrame
+	entries map[string]Value
+	parent  *StackFrame
 }
 
 func (frame *StackFrame) String() string {
 	s := ""
 	for {
 		s += "["
-		for key, value := range frame.values {
+		for key, value := range frame.entries {
 			s += key + ": " + value.String() + ", "
 		}
 		s += "] --> "
@@ -41,13 +41,13 @@ func (frame *StackFrame) String() string {
 }
 
 func (frame *StackFrame) GetChild() *StackFrame {
-	childFrame := StackFrame{parent: frame, values: make(map[string]Value)}
+	childFrame := StackFrame{parent: frame, entries: make(map[string]Value)}
 	return &childFrame
 }
 
 func (frame *StackFrame) Get(key string) (Value, error) {
 	for {
-		value, ok := frame.values[key]
+		value, ok := frame.entries[key]
 		if ok {
 			return value, nil
 		}
@@ -63,9 +63,9 @@ func (frame *StackFrame) Get(key string) (Value, error) {
 func (frame *StackFrame) Set(key string, value Value) {
 	currentFrame := frame
 	for {
-		_, ok := frame.values[key]
+		_, ok := frame.entries[key]
 		if ok {
-			frame.values[key] = value
+			frame.entries[key] = value
 			return
 		}
 		if parent := frame.parent; parent != nil {
@@ -74,7 +74,7 @@ func (frame *StackFrame) Set(key string, value Value) {
 			break
 		}
 	}
-	currentFrame.values[key] = value
+	currentFrame.entries[key] = value
 }
 
 type Value interface {
@@ -291,12 +291,38 @@ func (listValue ListValue) Append(other Value) {
 	listValue.val[len(listValue.val)] = &other
 }
 
+func (listValue ListValue) Prepend(other Value) {
+	// Shift all values up by one the cost
+	// scales with the list length O(N)
+	for i := len(listValue.val); i > 0; i-- {
+		listValue.val[i] = listValue.val[i-1]
+	}
+	listValue.val[0] = &other
+}
+
+func (listValue ListValue) Pop() Value {
+	last := *listValue.val[len(listValue.val)-1]
+	delete(listValue.val, len(listValue.val)-1)
+	return last
+}
+
+func (listValue ListValue) PopLeft() Value {
+	// Shift all values up by one the cost
+	// scales with the list length O(N)
+	for i := len(listValue.val); i > 0; i-- {
+		listValue.val[i] = listValue.val[i-1]
+	}
+	first := *listValue.val[0]
+	delete(listValue.val, 0)
+	return first
+}
+
 type DictValue struct {
-	entries map[string]*Value
+	val map[string]*Value
 }
 
 func (dictValue *DictValue) Get(key Value) (*Value, error) {
-	value, ok := dictValue.entries[key.String()]
+	value, ok := dictValue.val[key.String()]
 	if ok {
 		return value, nil
 	}
@@ -304,12 +330,12 @@ func (dictValue *DictValue) Get(key Value) (*Value, error) {
 }
 
 func (dictValue *DictValue) Set(key Value, value Value) {
-	dictValue.entries[key.String()] = &value
+	dictValue.val[key.String()] = &value
 }
 
 func (dictValue DictValue) String() string {
 	s := "["
-	for key, value := range dictValue.entries {
+	for key, value := range dictValue.val {
 		s += "{" + key + ": " + (*value).String() + "}, "
 	}
 	s += "]"
@@ -858,7 +884,7 @@ func (dictLiteral DictLiteral) Equals(other Value) (bool, error) {
 }
 
 func (dictLiteral DictLiteral) Eval(frame *StackFrame) (Value, error) {
-	dictValue := DictValue{entries: make(map[string]*Value)}
+	dictValue := DictValue{val: make(map[string]*Value)}
 	if dictLiteral.DictEntry != nil {
 		for _, dictEntry := range *dictLiteral.DictEntry {
 			var key Value
@@ -915,7 +941,6 @@ func (call Call) Equals(other Value) (bool, error) {
 
 func (call Call) Eval(frame *StackFrame) (Value, error) {
 	// TODO: pass the cursor location (call.Pos) for better errors?
-	var id string
 	var value Value
 	var err error
 	if ident := call.Ident; ident != nil {
@@ -957,12 +982,26 @@ func (call Call) Eval(frame *StackFrame) (Value, error) {
 		if listValue, okList := value.(ListValue); okList && access != nil {
 			if idVal, okId := access.(IdentifierValue); okId {
 				if idVal.val == "append" {
-					err = listAppend(listValue, chainCall, id, frame)
-					if err != nil {
-						return nil, err
+					err = listAppend(listValue, chainCall, frame)
+				} else if idVal.val == "prepend" {
+					err = listPrepend(listValue, chainCall, frame)
+				} else if idVal.val == "pop" {
+					if len(listValue.val) == 0 {
+						err = errors.New("cannot pop() from an empty list")
+					} else {
+						return listValue.Pop(), nil
 					}
-					return NilValue{}, nil
+				} else if idVal.val == "pop_left" {
+					if len(listValue.val) == 0 {
+						err = errors.New("cannot pop_left() from an empty list")
+					} else {
+						return listValue.PopLeft(), nil
+					}
 				}
+				if err != nil {
+					return nil, err
+				}
+				return NilValue{}, nil
 			}
 			value, err = listAccess(listValue, access)
 			if err != nil {
@@ -1050,15 +1089,27 @@ func listAccess(listValue ListValue, access Value) (Value, error) {
 	return nil, errors.New("list access expects 1 argument of type number: not " + value.String())
 }
 
-func listAppend(listValue ListValue, chainCall *CallChain, id string, frame *StackFrame) error {
+func listAppend(listValue ListValue, chainCall *CallChain, frame *StackFrame) error {
 	if chainCall.Next == nil || chainCall.Next.Parameters == nil || len(*chainCall.Next.Parameters) != 1 {
-		return errors.New("append expects 1 argument")
+		return errors.New("append() expects 1 argument")
 	}
 	args, err := parseArgs(chainCall.Next.Parameters, frame)
 	if err != nil {
 		return err
 	}
 	listValue.Append(args[0])
+	return nil
+}
+
+func listPrepend(listValue ListValue, chainCall *CallChain, frame *StackFrame) error {
+	if chainCall.Next == nil || chainCall.Next.Parameters == nil || len(*chainCall.Next.Parameters) != 1 {
+		return errors.New("prepend() expects 1 argument")
+	}
+	args, err := parseArgs(chainCall.Next.Parameters, frame)
+	if err != nil {
+		return err
+	}
+	listValue.Prepend(args[0])
 	return nil
 }
 

@@ -30,7 +30,7 @@ func TestPrograms(t *testing.T) {
 }
 
 func TestBadPrograms(t *testing.T) {
-	path := "./bad_programs/"
+	path := "./error_programs/"
 	files, err := ioutil.ReadDir(path)
 	if err != nil {
 		log.Fatal(err)
