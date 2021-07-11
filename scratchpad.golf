@@ -1,6 +1,5 @@
-// Keys, value
-d = {}
-assert(len(keys(d)), 0)
-d.a = "some key"
-log(keys(d))
-assert(keys(d)[0], "a")
+h = [0, 1]
+for k, v in h {
+    k
+    v
+}

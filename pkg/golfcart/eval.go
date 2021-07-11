@@ -786,6 +786,9 @@ func (primary Primary) Eval(frame *StackFrame) (Value, error) {
 	if primary.Continue != nil {
 		return nil, BreakValue{pos: primary.Continue.Pos}
 	}
+	if forExpression := primary.For; forExpression != nil {
+		return forExpression.Eval(frame)
+	}
 	if forWhileExpression := primary.ForWhile; forWhileExpression != nil {
 		forExpression := For{
 			Condition: forWhileExpression.Condition,
@@ -793,8 +796,14 @@ func (primary Primary) Eval(frame *StackFrame) (Value, error) {
 		}
 		return forExpression.Eval(frame)
 	}
-	if forExpression := primary.For; forExpression != nil {
-		return forExpression.Eval(frame)
+	if forKeyExpression := primary.ForKey; forKeyExpression != nil {
+		key := &IdentifierValue{val: *forKeyExpression.Key}
+		return evalForKeyValue(key, nil, forKeyExpression.Body, frame)
+	}
+	if forKeyExpression := primary.ForKeyValue; forKeyExpression != nil {
+		key := &IdentifierValue{val: *forKeyExpression.Key}
+		value := &IdentifierValue{val: *forKeyExpression.Value}
+		return evalForKeyValue(key, value, forKeyExpression.Body, frame)
 	}
 	if primary.Number != nil {
 		return NumberValue{val: *primary.Number}, nil
@@ -1145,12 +1154,40 @@ func dictAccess(dictValue DictValue, access Value) (Value, error) {
 	return ReferenceValue{val: value}, nil
 }
 
-func (forExpression For) String() string {
-	return "for loop"
-}
-
-func (forExpression For) Equals(other Value) (bool, error) {
-	return false, nil
+func evalForKeyValue(identKey *IdentifierValue, identValue *IdentifierValue, expressions []*Expression, frame *StackFrame) (Value, error) {
+	iterations := NumberValue{val: 0}
+	forFrame := frame.GetChild()
+	values, err := frame.Get(identKey.val)
+	if err != nil {
+		return nil, err
+	}
+	collection, err := golfcartValues([]Value{values})
+	if err != nil {
+		return nil, err
+	}
+	items, _ := collection.(ListValue)
+	for _, value := range items.val {
+		forFrame.Set(identKey.val, *value)
+		println("set " + identKey.val)
+		if identValue != nil {
+			forFrame.Set(identValue.val, *value)
+		}
+		var err error
+		iterations.val++
+		for _, expr := range expressions {
+			_, err = (*expr).Eval(forFrame)
+			if _, okBreak := err.(BreakValue); okBreak {
+				return iterations, nil
+			}
+			if _, okCont := err.(ContinueValue); okCont {
+				continue
+			}
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+	return iterations, nil
 }
 
 func (forExpression For) Eval(frame *StackFrame) (Value, error) {

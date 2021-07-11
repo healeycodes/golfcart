@@ -92,6 +92,8 @@ type Primary struct {
 	Call          *Call        `| @@`
 	For           *For         `| @@`
 	ForWhile      *ForWhile    `| @@`
+	ForKey        *ForKey      `| @@`
+	ForKeyValue   *ForKeyValue `| @@`
 	Return        *Return      `| @@`
 	Break         *Break       `| @@`
 	Continue      *Continue    `| @@`
@@ -186,6 +188,23 @@ type For struct {
 	Condition *Expression   `@@ ";"`
 	Post      *Expression   `@@`
 	Body      []*Expression `"{" @@* "}" )`
+}
+
+type ForKey struct {
+	Pos lexer.Position
+
+	Key        *string       `( "for" @Ident "in"`
+	Collection *string       `@Ident`
+	Body       []*Expression `"{" @@* "}" )`
+}
+
+type ForKeyValue struct {
+	Pos lexer.Position
+
+	Key        *string       `( "for" @Ident ","`
+	Value      *string       `@Ident "in"`
+	Collection *string       `@Ident`
+	Body       []*Expression `"{" @@* "}" )`
 }
 
 type ForWhile struct {
