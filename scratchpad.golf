@@ -1,5 +1,4 @@
-// Call chaining
-f = {a: {b: 1}}
-assert(f.a.b, 1)
-f.a.b = 2
-f.a.b
+m = ["a", "b"]
+n = m.pop()
+// assert(n, "b")
+assert(len(l), 1)

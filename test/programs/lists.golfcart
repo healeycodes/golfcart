@@ -20,25 +20,28 @@ for i = 0; i < 4; i = i + 1 {
     assert(g[i], i)
 }
 
-h = [0]
-h.append(-1)
-assert(h[1], -1)
-
 j = [5]
 j[0] = 6
 assert(j[0], 6)
+
+h = [0]
+h.append(-1)
+assert(h[1], -1)
+assert(len(h), 2)
 
 l = [0]
 l.prepend(-1)
 assert(l[0], -1)
 assert(l[1], 0)
+assert(len(l), 2)
 
 m = ["a", "b"]
 n = m.pop()
 assert(n, "b")
-assert(len(l), 1)
+assert(len(m), 1)
 
 o = ["a", "b"]
-p = m.pop_left()
+p = o.pop_left()
 assert(p, "a")
+log("here")
 assert(len(o), 1)

@@ -292,8 +292,8 @@ func (listValue ListValue) Append(other Value) {
 }
 
 func (listValue ListValue) Prepend(other Value) {
-	// Shift all values up by one the cost
-	// scales with the list length O(N)
+	// Add a new zeroth item.
+	// Correcting the remaining indexes costs O(N)
 	for i := len(listValue.val); i > 0; i-- {
 		listValue.val[i] = listValue.val[i-1]
 	}
@@ -307,13 +307,14 @@ func (listValue ListValue) Pop() Value {
 }
 
 func (listValue ListValue) PopLeft() Value {
-	// Shift all values up by one the cost
-	// scales with the list length O(N)
-	for i := len(listValue.val); i > 0; i-- {
-		listValue.val[i] = listValue.val[i-1]
-	}
+	// Remove and return the zeroth item.
+	// Correcting the remaining indexes costs O(N)
 	first := *listValue.val[0]
 	delete(listValue.val, 0)
+	for i := 0; i < len(listValue.val); i++ {
+		listValue.val[i] = listValue.val[i+1]
+	}
+	delete(listValue.val, len(listValue.val)-1)
 	return first
 }
 
