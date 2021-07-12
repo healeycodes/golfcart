@@ -860,6 +860,8 @@ func (ifExpression If) Eval(frame *StackFrame) (Value, error) {
 				}
 			}
 			return result, nil
+		} else if ifExpression.ElseIf != nil {
+			//
 		} else if ifExpression.ElseBody != nil {
 			for _, expr := range ifExpression.ElseBody {
 				result, err = (*expr).Eval(ifFrame)

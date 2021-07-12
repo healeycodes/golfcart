@@ -121,9 +121,9 @@ type If struct {
 }
 
 type ElseIf struct {
-	Condition  *Expression   `"else if" @@`
-	IfBody     []*Expression `"{" @@* "}"`
-	NextElseIf *ElseIf       `@@*`
+	Condition *Expression   `"else if" @@`
+	IfBody    []*Expression `"{" @@* "}"`
+	Next      *ElseIf       `@@*`
 }
 
 type FunctionLiteral struct {
