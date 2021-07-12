@@ -90,19 +90,20 @@ type Primary struct {
 	DataLiteral   *DataLiteral `| @@`
 	SubExpression *Expression  `| "(" @@ ")"`
 	Call          *Call        `| @@`
-	ForKeyValue   *ForKeyValue `| @@`
-	ForValue      *ForValue    `| @@`
-	For           *For         `| @@`
-	ForWhile      *ForWhile    `| @@`
-	Return        *Return      `| @@`
-	Break         *Break       `| @@`
-	Continue      *Continue    `| @@`
-	Number        *float64     `| @Float | @Int`
-	Str           *string      `| @String`
-	True          *bool        `| @"true"`
-	False         *bool        `| @"false"`
-	Nil           *bool        `| @"nil"`
-	Ident         *string      `| @Ident`
+	// TODO: `for {}` is a parser error
+	ForKeyValue *ForKeyValue `| @@`
+	ForValue    *ForValue    `| @@`
+	For         *For         `| @@`
+	ForWhile    *ForWhile    `| @@`
+	Return      *Return      `| @@`
+	Break       *Break       `| @@`
+	Continue    *Continue    `| @@`
+	Number      *float64     `| @Float | @Int`
+	Str         *string      `| @String`
+	True        *bool        `| @"true"`
+	False       *bool        `| @"false"`
+	Nil         *bool        `| @"nil"`
+	Ident       *string      `| @Ident`
 }
 
 type DataLiteral struct {

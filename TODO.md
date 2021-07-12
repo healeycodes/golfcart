@@ -1,11 +1,6 @@
-```
-for ident in expr {
+## Bugs
 
-}
-for ident, ident in expr {
+- `for {}` is a parser error
+  - `for { break } works
+  - `for true {}` works
 
-}
-```
-
-## REPL
-- Written in Golfcart?
