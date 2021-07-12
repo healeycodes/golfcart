@@ -34,9 +34,3 @@ assert(f(), 1)
 
 g = () => for i = 0; i < 2; i = i + 1 {}
 assert(g(), 2)
-
-h = [0, 1]
-for k, v in h {
-    k
-    v
-}

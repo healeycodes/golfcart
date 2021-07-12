@@ -197,7 +197,7 @@ func (stringValue StringValue) Equals(other Value) (bool, error) {
 		return true, nil
 	}
 	otherType, _ := golfcartType([]Value{stringValue})
-	return false, errors.New("strings can only be compared to other strings: found" + otherType.String())
+	return false, errors.New("strings can only be compared to other strings: found: " + otherType.String())
 }
 
 type BoolValue struct {
@@ -844,14 +844,6 @@ func (ifExpression If) Equals(other Value) (bool, error) {
 
 func (ifExpression If) Eval(frame *StackFrame) (Value, error) {
 	ifFrame := frame.GetChild()
-	if ifExpression.Init != nil {
-		for _, assignExpr := range ifExpression.Init {
-			_, err := (*assignExpr).Eval(ifFrame)
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
 	condition, err := ifExpression.Condition.Eval(ifFrame)
 	if err != nil {
 		return nil, err
@@ -1163,15 +1155,31 @@ func evalForKeyValue(identKey *string, identValue *string, identCollection *stri
 	if err != nil {
 		return nil, err
 	}
-	collection, err := golfcartValues([]Value{values})
-	if err != nil {
-		return nil, err
+	iterableValues := make([]Value, 0)
+	iterableKeys := make([]Value, 0)
+	if listValue, okList := values.(ListValue); okList {
+		for k, v := range listValue.val {
+			iterableKeys = append(iterableKeys, NumberValue{val: float64(k)})
+			iterableValues = append(iterableValues, *v)
+		}
 	}
-	items, _ := collection.(ListValue)
-	for i, value := range items.val {
-		forFrame.Set(*identValue, *value)
-		if identValue != nil {
-			forFrame.Set(*identKey, *value)
+	if dictVal, okDict := values.(DictValue); okDict {
+		for k, v := range dictVal.val {
+			iterableKeys = append(iterableKeys, StringValue{val: []byte(k)})
+			iterableValues = append(iterableValues, *v)
+		}
+	}
+	if strVal, okStr := values.(StringValue); okStr {
+		for k, v := range strVal.val {
+			iterableKeys = append(iterableKeys, NumberValue{val: float64(k)})
+			iterableValues = append(iterableValues, StringValue{val: []byte{v}})
+		}
+	}
+
+	for i := 0; i < len(iterableValues); i++ {
+		forFrame.Set(*identValue, iterableValues[i])
+		if identKey != nil {
+			forFrame.Set(*identKey, iterableKeys[i])
 		}
 		var err error
 		iterations.val++

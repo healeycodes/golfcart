@@ -114,10 +114,16 @@ type DataLiteral struct {
 type If struct {
 	Pos lexer.Position
 
-	Init      []*Assignment `"if" ( @@ ("," @@)* ";" )?`
-	Condition *Expression   `@@`
+	Condition *Expression   `"if" @@`
 	IfBody    []*Expression `"{" @@* "}"`
+	ElseIf    []*ElseIf     `@@*`
 	ElseBody  []*Expression `( "else" "{" @@* "}" )?`
+}
+
+type ElseIf struct {
+	Condition  *Expression   `"else if" @@`
+	IfBody     []*Expression `"{" @@* "}"`
+	NextElseIf *ElseIf       `@@*`
 }
 
 type FunctionLiteral struct {

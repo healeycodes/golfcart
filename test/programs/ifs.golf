@@ -20,7 +20,8 @@ a = if false {
 }
 assert(a, 2)
 
-a = if b = 1; b == 1 {
+b = 1
+a = if b == 1 {
     assert(b, 1)
     4
 }

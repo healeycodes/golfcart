@@ -1,0 +1,26 @@
+g = ["a", "a"]
+iterations = for k, v in g {
+    correct_index = false
+    if k == 0 {
+        correct_index = true
+    }
+    if k == 1 {
+        correct_index = true
+    }
+    assert(correct_index, true)
+    assert(v, "a")
+}
+assert(iterations, 2)
+
+h = [1, 1]
+iterations = for v in h {
+    assert(v, 1)
+}
+assert(iterations, 2)
+
+i = {a: 5}
+iterations = for k, v in i {
+    assert(k, "a")
+    assert(v, 5)
+}
+assert(iterations, 1)

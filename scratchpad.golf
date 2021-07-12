@@ -1,5 +1,5 @@
-h = [0, 1]
+h = ["a", "b"]
 for k, v in h {
-    k
-    v
+    log(k)
+    log(v)
 }
