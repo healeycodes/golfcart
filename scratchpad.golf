@@ -1,5 +1,2 @@
-h = ["a", "b"]
-for k, v in h {
-    log(k)
-    log(v)
-}
+
+if false {} else if true {} else {}

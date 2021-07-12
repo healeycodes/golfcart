@@ -26,3 +26,7 @@ a = if b == 1 {
     4
 }
 assert(a, 4)
+
+assert(if true {1} else if false {} else {}, 1)
+assert(if false {} else if false {} else {2}, 2)
+assert(if false {} else if true {3} else {}, 3)

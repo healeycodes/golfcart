@@ -24,3 +24,8 @@ iterations = for k, v in i {
     assert(v, 5)
 }
 assert(iterations, 1)
+
+iterations = for v in "a" { assert(v, "a") }
+
+iterations = for v in "123" {}
+assert(iterations, 3)

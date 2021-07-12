@@ -799,13 +799,15 @@ func (primary Primary) Eval(frame *StackFrame) (Value, error) {
 	if forKeyExpression := primary.ForValue; forKeyExpression != nil {
 		value := forKeyExpression.Value
 		collection := forKeyExpression.Collection
-		return evalForKeyValue(nil, value, collection, forKeyExpression.Body, frame)
+		collectionExpression := forKeyExpression.CollectionExpression
+		return evalForKeyValue(nil, value, collection, collectionExpression, forKeyExpression.Body, frame)
 	}
 	if forKeyExpression := primary.ForKeyValue; forKeyExpression != nil {
 		key := forKeyExpression.Key
 		value := forKeyExpression.Value
 		collection := forKeyExpression.Collection
-		return evalForKeyValue(key, value, collection, forKeyExpression.Body, frame)
+		collectionExpression := forKeyExpression.CollectionExpression
+		return evalForKeyValue(key, value, collection, collectionExpression, forKeyExpression.Body, frame)
 	}
 	if primary.Number != nil {
 		return NumberValue{val: *primary.Number}, nil
@@ -860,9 +862,37 @@ func (ifExpression If) Eval(frame *StackFrame) (Value, error) {
 				}
 			}
 			return result, nil
-		} else if ifExpression.ElseIf != nil {
-			//
-		} else if ifExpression.ElseBody != nil {
+		}
+		if ifExpression.ElseIf != nil {
+			// TODO: there's some duplicated logic here
+			// but it will only ever be in two places
+			// If and ElseIf – not sure if it's worth refactoring?
+			current := ifExpression.ElseIf
+			for current != nil {
+				condition, err := current.Condition.Eval(ifFrame)
+				if err != nil {
+					return nil, err
+				}
+				var result Value
+				result = NilValue{}
+				if boolValue, okBool := condition.(BoolValue); okBool {
+					var err error
+					if boolValue.val {
+						for _, expr := range current.IfBody {
+							result, err = (*expr).Eval(ifFrame)
+							if err != nil {
+								return nil, err
+							}
+						}
+						return result, nil
+					}
+				} else {
+					return nil, errors.New("if expression conditional should evaluate to true or false")
+				}
+				current = current.Next
+			}
+		}
+		if ifExpression.ElseBody != nil {
 			for _, expr := range ifExpression.ElseBody {
 				result, err = (*expr).Eval(ifFrame)
 				if err != nil {
@@ -874,7 +904,6 @@ func (ifExpression If) Eval(frame *StackFrame) (Value, error) {
 	} else {
 		return nil, errors.New("if expression conditional should evaluate to true or false")
 	}
-
 	return result, nil
 }
 
@@ -1150,10 +1179,16 @@ func dictAccess(dictValue DictValue, access Value) (Value, error) {
 	return ReferenceValue{val: value}, nil
 }
 
-func evalForKeyValue(identKey *string, identValue *string, identCollection *string, expressions []*Expression, frame *StackFrame) (Value, error) {
+func evalForKeyValue(keyIdent *string, valueIdent *string, collectionIdent *string, collectionExpression *Expression, expressions []*Expression, frame *StackFrame) (Value, error) {
 	iterations := NumberValue{val: 0}
 	forFrame := frame.GetChild()
-	values, err := frame.Get(*identCollection)
+	var values Value
+	var err error
+	if collectionIdent != nil {
+		values, err = frame.Get(*collectionIdent)
+	} else {
+		values, err = collectionExpression.Eval(forFrame)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -1179,9 +1214,9 @@ func evalForKeyValue(identKey *string, identValue *string, identCollection *stri
 	}
 
 	for i := 0; i < len(iterableValues); i++ {
-		forFrame.Set(*identValue, iterableValues[i])
-		if identKey != nil {
-			forFrame.Set(*identKey, iterableKeys[i])
+		forFrame.Set(*valueIdent, iterableValues[i])
+		if keyIdent != nil {
+			forFrame.Set(*keyIdent, iterableKeys[i])
 		}
 		var err error
 		iterations.val++

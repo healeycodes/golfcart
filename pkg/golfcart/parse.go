@@ -116,12 +116,12 @@ type If struct {
 
 	Condition *Expression   `"if" @@`
 	IfBody    []*Expression `"{" @@* "}"`
-	ElseIf    []*ElseIf     `@@*`
+	ElseIf    *ElseIf       `@@*`
 	ElseBody  []*Expression `( "else" "{" @@* "}" )?`
 }
 
 type ElseIf struct {
-	Condition *Expression   `"else if" @@`
+	Condition *Expression   `"else" "if" @@`
 	IfBody    []*Expression `"{" @@* "}"`
 	Next      *ElseIf       `@@*`
 }
@@ -199,18 +199,20 @@ type For struct {
 type ForValue struct {
 	Pos lexer.Position
 
-	Value      *string       `( "for" @Ident "in"`
-	Collection *string       `@Ident`
-	Body       []*Expression `"{" @@* "}" )`
+	Value                *string       `( "for" @Ident "in"`
+	Collection           *string       `( @Ident`
+	CollectionExpression *Expression   `| @@) `
+	Body                 []*Expression `"{" @@* "}" )`
 }
 
 type ForKeyValue struct {
 	Pos lexer.Position
 
-	Key        *string       `( "for" @Ident ","`
-	Value      *string       `@Ident "in"`
-	Collection *string       `@Ident`
-	Body       []*Expression `"{" @@* "}" )`
+	Key                  *string       `( "for" @Ident ","`
+	Value                *string       `@Ident "in"`
+	Collection           *string       `( @Ident`
+	CollectionExpression *Expression   `| @@) `
+	Body                 []*Expression `"{" @@* "}" )`
 }
 
 type ForWhile struct {
