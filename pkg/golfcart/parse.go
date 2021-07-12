@@ -90,10 +90,10 @@ type Primary struct {
 	DataLiteral   *DataLiteral `| @@`
 	SubExpression *Expression  `| "(" @@ ")"`
 	Call          *Call        `| @@`
+	ForKeyValue   *ForKeyValue `| @@`
+	ForValue      *ForValue    `| @@`
 	For           *For         `| @@`
 	ForWhile      *ForWhile    `| @@`
-	ForKey        *ForKey      `| @@`
-	ForKeyValue   *ForKeyValue `| @@`
 	Return        *Return      `| @@`
 	Break         *Break       `| @@`
 	Continue      *Continue    `| @@`
@@ -190,10 +190,10 @@ type For struct {
 	Body      []*Expression `"{" @@* "}" )`
 }
 
-type ForKey struct {
+type ForValue struct {
 	Pos lexer.Position
 
-	Key        *string       `( "for" @Ident "in"`
+	Value      *string       `( "for" @Ident "in"`
 	Collection *string       `@Ident`
 	Body       []*Expression `"{" @@* "}" )`
 }

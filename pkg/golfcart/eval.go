@@ -796,14 +796,16 @@ func (primary Primary) Eval(frame *StackFrame) (Value, error) {
 		}
 		return forExpression.Eval(frame)
 	}
-	if forKeyExpression := primary.ForKey; forKeyExpression != nil {
-		key := &IdentifierValue{val: *forKeyExpression.Key}
-		return evalForKeyValue(key, nil, forKeyExpression.Body, frame)
+	if forKeyExpression := primary.ForValue; forKeyExpression != nil {
+		value := forKeyExpression.Value
+		collection := forKeyExpression.Collection
+		return evalForKeyValue(nil, value, collection, forKeyExpression.Body, frame)
 	}
 	if forKeyExpression := primary.ForKeyValue; forKeyExpression != nil {
-		key := &IdentifierValue{val: *forKeyExpression.Key}
-		value := &IdentifierValue{val: *forKeyExpression.Value}
-		return evalForKeyValue(key, value, forKeyExpression.Body, frame)
+		key := forKeyExpression.Key
+		value := forKeyExpression.Value
+		collection := forKeyExpression.Collection
+		return evalForKeyValue(key, value, collection, forKeyExpression.Body, frame)
 	}
 	if primary.Number != nil {
 		return NumberValue{val: *primary.Number}, nil
@@ -1154,10 +1156,10 @@ func dictAccess(dictValue DictValue, access Value) (Value, error) {
 	return ReferenceValue{val: value}, nil
 }
 
-func evalForKeyValue(identKey *IdentifierValue, identValue *IdentifierValue, expressions []*Expression, frame *StackFrame) (Value, error) {
+func evalForKeyValue(identKey *string, identValue *string, identCollection *string, expressions []*Expression, frame *StackFrame) (Value, error) {
 	iterations := NumberValue{val: 0}
 	forFrame := frame.GetChild()
-	values, err := frame.Get(identKey.val)
+	values, err := frame.Get(*identCollection)
 	if err != nil {
 		return nil, err
 	}
@@ -1166,11 +1168,10 @@ func evalForKeyValue(identKey *IdentifierValue, identValue *IdentifierValue, exp
 		return nil, err
 	}
 	items, _ := collection.(ListValue)
-	for _, value := range items.val {
-		forFrame.Set(identKey.val, *value)
-		println("set " + identKey.val)
+	for i, value := range items.val {
+		forFrame.Set(*identValue, *value)
 		if identValue != nil {
-			forFrame.Set(identValue.val, *value)
+			forFrame.Set(*identKey, *value)
 		}
 		var err error
 		iterations.val++
