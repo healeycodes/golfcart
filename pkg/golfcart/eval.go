@@ -25,19 +25,18 @@ type StackFrame struct {
 func (frame *StackFrame) String() string {
 	s := ""
 	for {
-		s += "["
+		s += "{\n"
 		for key, value := range frame.entries {
-			s += key + ": " + value.String() + ", "
+			s += fmt.Sprintf("\t %v: %v\n", key, value)
 		}
-		s += "] --> "
+		s += "}"
 		if parent := frame.parent; parent != nil {
 			frame = parent
 		} else {
 			break
 		}
 	}
-
-	return s + "*"
+	return s
 }
 
 func (frame *StackFrame) GetChild() *StackFrame {
@@ -87,7 +86,7 @@ func formatValues(values []Value) string {
 	for i, value := range values {
 		s[i] = value.String()
 	}
-	return "[ " + strings.Join(s, ", ") + " ]"
+	return "(" + strings.Join(s, ", ") + ")"
 }
 
 type ReferenceValue struct {
@@ -139,8 +138,7 @@ func (identifierValue IdentifierValue) String() string {
 }
 
 func (identifierValue IdentifierValue) Equals(other Value) (bool, error) {
-	return false, errors.New("tried to compare with an uninitialized identifier: " +
-		identifierValue.String() + " " + other.String())
+	return false, fmt.Errorf("tried to compare with an uninitialized identifier: %v %v", identifierValue, other)
 }
 
 func (idValue IdentifierValue) Eval(frame *StackFrame) (Value, error) {
@@ -197,7 +195,7 @@ func (stringValue StringValue) Equals(other Value) (bool, error) {
 		return true, nil
 	}
 	otherType, _ := golfcartType([]Value{stringValue})
-	return false, errors.New("strings can only be compared to other strings: found: " + otherType.String())
+	return false, fmt.Errorf("strings can only be compared to other strings, not: %v", otherType)
 }
 
 type BoolValue struct {
@@ -218,7 +216,7 @@ type ReturnValue struct {
 }
 
 func (returnValue ReturnValue) Error() string {
-	return returnValue.pos.String() + " return expression used outside of a function"
+	return fmt.Sprintf("%v return expression used outside of a function", returnValue.pos)
 }
 
 type BreakValue struct {
@@ -226,7 +224,7 @@ type BreakValue struct {
 }
 
 func (breakValue BreakValue) Error() string {
-	return breakValue.pos.String() + " break expression used outside of a for loop"
+	return fmt.Sprintf("%v break expression used outside of a for loop", breakValue.pos)
 }
 
 type ContinueValue struct {
@@ -234,7 +232,7 @@ type ContinueValue struct {
 }
 
 func (continueValue ContinueValue) Error() string {
-	return continueValue.pos.String() + " continue expression used outside of a for loop"
+	return fmt.Sprintf("%v continue expression used outside of a for loop", continueValue.pos)
 }
 
 type FunctionValue struct {
@@ -253,8 +251,7 @@ func (functionValue FunctionValue) Equals(other Value) (bool, error) {
 
 func (functionValue FunctionValue) Exec(args []Value) (Value, error) {
 	if len(args) != len(functionValue.parameters) {
-		return nil, errors.New("function called with incorrect number of arguments: wanted: " +
-			fmt.Sprint(len(functionValue.parameters)) + " got: " + formatValues(args))
+		return nil, fmt.Errorf("function called with incorrect number of arguments, wanted: %v, got: %v", len(functionValue.parameters), formatValues(args))
 	}
 	for i, parameter := range functionValue.parameters {
 		functionValue.frame.Set(parameter, args[i])
@@ -344,12 +341,13 @@ func (dictValue *DictValue) Set(key string, value Value) {
 }
 
 func (dictValue DictValue) String() string {
-	s := "["
+	s := make([]string, 0)
+	s = append(s, "{")
 	for key, value := range dictValue.val {
-		s += "{" + key + ": " + (*value).String() + "}, "
+		s = append(s, fmt.Sprintf("%v: %v", key, *value))
 	}
-	s += "]"
-	return s
+	s = append(s, "}")
+	return strings.Join(s, "")
 }
 
 func (dictValue DictValue) Equals(other Value) (bool, error) {
@@ -444,13 +442,13 @@ func (assignment Assignment) Eval(frame *StackFrame) (Value, error) {
 		}
 		if leftRefOk {
 			*leftRef.val = right
-			return NilValue{}, nil
+			return right, nil
 		}
 		if leftId, okId := left.(IdentifierValue); okId {
 			frame.Set(leftId.val, right)
-			return NilValue{}, nil
+			return right, nil
 		}
-		return nil, errors.New("can't assign to non-identifier: " + left.String())
+		return nil, fmt.Errorf("can't assign to non-identifier: %v", left)
 	}
 	panic("unreachable Assignment Eval")
 }
@@ -585,11 +583,11 @@ func (comparison Comparison) Eval(frame *StackFrame) (Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	rightType, err := golfcartType([]Value{left})
+	rightType, err := golfcartType([]Value{right})
 	if err != nil {
 		return nil, err
 	}
-	return nil, errors.New("only numbers can be compared: " + leftType.String() + " " + comparison.Op + " " + rightType.String())
+	return nil, fmt.Errorf("only numbers can be compared: %v %v %v", leftType, comparison.Op, rightType)
 }
 
 func (addition Addition) String() string {
@@ -622,13 +620,13 @@ func (addition Addition) Eval(frame *StackFrame) (Value, error) {
 		return nil, err
 	}
 
-	err_msg := fmt.Sprintf(" '+' can only be used between [string, string], [number, number],"+
-		"[list, list], not: [%v, %v]", left.String(), right.String())
+	err_msg := fmt.Errorf("%v '+' can only be used between [string, string], [number, number], [list, list], not: [%v, %v]",
+		addition.Multiplication.Pos, left, right)
 
 	leftStr, okLeft := left.(StringValue)
 	rightStr, okRight := right.(StringValue)
 	if addition.Op == "+" && (okLeft && !okRight || okRight && !okLeft) {
-		return nil, errors.New(addition.Multiplication.Pos.String() + err_msg)
+		return nil, err_msg
 	} else if addition.Op == "+" && okLeft && okRight {
 		return StringValue{val: append([]byte{}, append(leftStr.val, rightStr.val...)...)}, nil
 	}
@@ -636,7 +634,7 @@ func (addition Addition) Eval(frame *StackFrame) (Value, error) {
 	leftList, okLeft := left.(ListValue)
 	rightList, okRight := right.(ListValue)
 	if addition.Op == "+" && (okLeft && !okRight || okRight && !okLeft) {
-		return nil, errors.New(addition.Multiplication.Pos.String() + err_msg)
+		return nil, err_msg
 	} else if addition.Op == "+" && okLeft && okRight {
 		newMap := ListValue{val: map[int]*Value{}}
 		for i, value := range leftList.val {
@@ -652,7 +650,7 @@ func (addition Addition) Eval(frame *StackFrame) (Value, error) {
 	leftNum, okLeft := left.(NumberValue)
 	rightNum, okRight := right.(NumberValue)
 	if addition.Op == "+" && (okLeft && !okRight || okRight && !okLeft) {
-		return nil, errors.New(addition.Multiplication.Pos.String() + err_msg)
+		return nil, err_msg
 	} else if addition.Op == "+" && okLeft && okRight {
 		return NumberValue{val: leftNum.val + rightNum.val}, nil
 	} else if addition.Op == "-" && okLeft && okRight {
@@ -693,11 +691,11 @@ func (multiplication Multiplication) Eval(frame *StackFrame) (Value, error) {
 
 	leftNum, okLeft := left.(NumberValue)
 	if !okLeft {
-		return nil, errors.New(multiplication.Unary.Pos.String() + " '*' and '/' only supported between numbers")
+		return nil, fmt.Errorf("%v '*' and '/' only supported between numbers", multiplication.Unary.Pos)
 	}
 	rightNum, okRight := right.(NumberValue)
 	if !okRight {
-		return nil, errors.New(multiplication.Next.Pos.String() + " '*' and '/' only supported between numbers")
+		return nil, fmt.Errorf("%v '*' and '/' only supported between numbers", multiplication.Unary.Pos)
 	}
 	if multiplication.Op == "*" {
 		return NumberValue{val: leftNum.val * rightNum.val}, nil
@@ -729,7 +727,7 @@ func (unary Unary) Eval(frame *StackFrame) (Value, error) {
 		if boolValue, ok := value.(BoolValue); ok {
 			return BoolValue{val: !boolValue.val}, nil
 		}
-		return nil, errors.New(unary.Pos.String() + " expected bool after '!'")
+		return nil, fmt.Errorf("%v expected bool after '!'", unary.Pos)
 	}
 	if unary.Op == "-" {
 		value, err := unary.Unary.Eval(frame)
@@ -743,7 +741,7 @@ func (unary Unary) Eval(frame *StackFrame) (Value, error) {
 		if numberValue, ok := value.(NumberValue); ok {
 			return NumberValue{val: -numberValue.val}, nil
 		}
-		return nil, errors.New(unary.Pos.String() + " expected number after '-'")
+		return nil, fmt.Errorf("%v expected number after '-'", unary.Pos)
 	}
 	return unary.Primary.Eval(frame)
 }
@@ -1117,7 +1115,7 @@ func stringAccess(stringValue StringValue, access Value) (Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	return nil, errors.New("string access expects 1 argument of type number: not [" + value.String() + "]")
+	return nil, fmt.Errorf("string access expects 1 argument of type number, not: %v", value)
 }
 
 func listAccess(listValue ListValue, access Value) (Value, error) {
@@ -1133,7 +1131,7 @@ func listAccess(listValue ListValue, access Value) (Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	return nil, errors.New("list access expects 1 argument of type number: not " + value.String())
+	return nil, fmt.Errorf("list access expects 1 argument of type number, not %v", value)
 }
 
 func listAppend(listValue ListValue, chainCall *CallChain, frame *StackFrame) error {
@@ -1171,7 +1169,7 @@ func dictAccess(dictValue DictValue, access Value) (Value, error) {
 		if err != nil {
 			return nil, err
 		}
-		return nil, errors.New("Only strings are allowed as dict keys, not: " + golfType.String())
+		return nil, fmt.Errorf("Only strings are allowed as dict keys, not: %v", golfType)
 	}
 	var newValue Value
 	newValue = NilValue{}
@@ -1282,7 +1280,7 @@ func (forExpression For) Eval(frame *StackFrame) (Value, error) {
 			if err != nil {
 				return nil, err
 			}
-			return nil, errors.New("condition expression of for loop should be of type bool not: " + valueType.String())
+			return nil, fmt.Errorf("condition expression of for loop should be of type bool not: %v", valueType)
 		}
 		// For-variants e.g. `for true {}` `for {}` don't have a post expression
 		if forExpression.Post != nil {
@@ -1293,27 +1291,4 @@ func (forExpression For) Eval(frame *StackFrame) (Value, error) {
 		}
 	}
 	return iterations, nil
-}
-
-func RunProgram(source string, debug bool) (*string, error) {
-	ast, err := GenerateAST(source)
-	if err != nil {
-		return nil, err
-	}
-
-	context := Context{}
-	context.Init()
-	InjectRuntime(&context)
-
-	result, err := ast.Eval(&context)
-	if err != nil {
-		return nil, err
-	}
-
-	if debug {
-		println(context.stackFrame.String())
-	}
-
-	ret := result.String()
-	return &ret, nil
 }
