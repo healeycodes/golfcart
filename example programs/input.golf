@@ -1,0 +1,4 @@
+get_name = () => in("Enter your name: ")
+print_name_length = name => log(str(len(name)))
+
+print_name_length(get_name())

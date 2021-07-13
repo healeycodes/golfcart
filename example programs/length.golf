@@ -1,0 +1,9 @@
+// Reimplement the `len()` runtime function
+
+                   // For Loops evaluate to the number of times
+                   // their condition evaluated to true.
+_len = iterable => for _ in iterable {}
+
+languages = ["C", "C++", "Rust"]
+
+assert(len(languages), _len(languages))

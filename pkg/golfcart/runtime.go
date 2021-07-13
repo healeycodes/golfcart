@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/alecthomas/participle/v2/lexer"
 )
@@ -26,6 +27,7 @@ func InjectRuntime(context *Context) {
 	setNativeFunc("len", NativeFunctionValue{name: "len", Exec: golfcartLen}, &context.stackFrame)
 	setNativeFunc("keys", NativeFunctionValue{name: "keys", Exec: golfcartKeys}, &context.stackFrame)
 	setNativeFunc("values", NativeFunctionValue{name: "values", Exec: golfcartValues}, &context.stackFrame)
+	setNativeFunc("time", NativeFunctionValue{name: "time", Exec: golfcartTime}, &context.stackFrame)
 }
 
 type NativeFunctionValue struct {
@@ -60,9 +62,17 @@ func golfcartAssert(args []Value) (Value, error) {
 }
 
 func golfcartIn(args []Value) (Value, error) {
-	scanner := bufio.NewScanner(os.Stdin)
-	scanner.Scan()
-	return StringValue{val: []byte(scanner.Text())}, nil
+	if len(args) != 1 {
+		return nil, fmt.Errorf("in() expects 1 string argument")
+	}
+	value := args[0]
+	if strValue, okStr := value.(StringValue); okStr {
+		golfcartLog([]Value{strValue})
+		scanner := bufio.NewScanner(os.Stdin)
+		scanner.Scan()
+		return StringValue{val: []byte(scanner.Text())}, nil
+	}
+	return nil, fmt.Errorf("in() expects 1 string argument")
 }
 
 func golfcartLog(args []Value) (Value, error) {
@@ -192,4 +202,11 @@ func golfcartValues(args []Value) (Value, error) {
 		return ListValue{val: values}, nil
 	}
 	return nil, fmt.Errorf("values() expects 1 argument of type dict")
+}
+
+func golfcartTime(args []Value) (Value, error) {
+	if len(args) != 0 {
+		return nil, fmt.Errorf("time() expects 0 arguments")
+	}
+	return NumberValue{val: float64(time.Now().UnixNano() / int64(time.Millisecond))}, nil
 }

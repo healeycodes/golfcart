@@ -1,0 +1,7 @@
+t = time()
+
+if t > 1626207996507 {
+    log("The time is after this README was written.")
+} else {
+    log("Greetings, time travellers.")
+}

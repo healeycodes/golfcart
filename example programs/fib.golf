@@ -1,4 +1,5 @@
 // Naive
+t = time()
 fib = n => if n == 0 {
     0
 } else if n == 1 {
@@ -7,8 +8,10 @@ fib = n => if n == 0 {
     fib(n - 1) + fib(n - 2)
 }
 fib(20)
+log("fib: " + str(time() - t))
 
 // With memoization 
+t = time()
 cache = {"0": 0, "1": 1}
 fib_memo = n => if cache[n] != nil {
     cache[n]
@@ -16,6 +19,7 @@ fib_memo = n => if cache[n] != nil {
     cache[n] = fib_memo(n - 1) + fib_memo(n - 2)
 }
 fib_memo(20)
+log("fib_memo: " + str(time() - t))
 
 // With memoization and closure
 fib_closure = x => {

@@ -1,0 +1,2 @@
+assert(type(time()), "number")
+assert(time() > 0, true)
