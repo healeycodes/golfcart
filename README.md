@@ -16,7 +16,7 @@ for i = 1; i < 101; i = i + 1 {
 }
 ```
 
-It's a dynamic typed language with support for bools, strings, numbers (float64), lists, dicts, and nil (null). There is full support for closures and functions can alter any variable in a higher scope.
+golfcart is a dynamic typed language with support for bools, strings, numbers (float64), lists, dicts, and nil (null). There is full support for closures and functions can alter any variable in a higher scope.
 
 ```javascript
 counter = () => {
@@ -71,7 +71,7 @@ sum = (x, y) => x + y
 nil
 ```
 
-Next, the fibonacci sequence.
+The fibonacci sequence.
 
 ```javascript
 // Naive
@@ -102,3 +102,35 @@ For more detailed examples, see:
 - [Example programs](https://github.com/healeycodes/golfcart/tree/main/example%20programs)
 - [Specification programs](https://github.com/healeycodes/golfcart/tree/main/example%20programs/spec%20programs)
 - [Programs that purposefully throw errors](https://github.com/healeycodes/golfcart/tree/main/example%20programs/error%20programs).
+
+## Motivations
+
+This is a toy programming language that I built to take part in Advent of Code 2021 using my own programming language. And to learn how to write an interpreter from scratch. Previously, I read Crafting Interpreters and implemented the Lox programming language using Python, and partially ported Ink using Rust.
+
+I wanted to design a programming language that didn't use semi-colons or automatic semicolon insertion. So, no statements and everything should be an expression that evaluates to a value.
+- `if` evaluates to the successful branch
+- a variable declaration evalutes to the value
+- setting a map value evalutes to the value
+- a for loop evalutes to the number of times the condition expression succeeded
+
+```javascript
+assert(
+    for i = 0; i < 5; i = i + 1 {}, 5
+)
+```
+
+I didn't realise how restrctive my design goals were. A problem I ran into early was accessing an item from a literal.
+
+```javascript
+[0] // A list with the number zero
+[0] // This is a parsing error!
+    // Why? Well, are we evaluating another list
+    // or trying to access the zeroth element of the literal on line 1
+
+// Instead, you do:
+a = [0]
+a[0] // Evaluates to `0`
+
+// or
+([0])[0] // Evaluates to `0`
+```
