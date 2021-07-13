@@ -13,8 +13,13 @@ func main() {
 	repl := flag.Bool("repl", false, "Enter language shell")
 	debug := flag.Bool("debug", false, "Dump state after execution")
 	ebnf := flag.Bool("ebnf", false, "Print EBNF grammar of the parser and quit")
+	version := flag.Bool("version", false, "Print version and quit")
 	flag.Parse()
 
+	if *version {
+		fmt.Printf("Golfcart v%v\n", golfcart.VERSION)
+		return
+	}
 	if *repl {
 		golfcart.REPL()
 		return
@@ -24,7 +29,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	// If no program, user probably wants to run the REPL
+	// If no file path, user probably wants to run the REPL
 	file := flag.Arg(0)
 	if file == "" {
 		golfcart.REPL()

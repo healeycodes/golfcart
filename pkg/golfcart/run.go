@@ -30,7 +30,7 @@ func RunProgram(source string, debug bool) (*string, error) {
 }
 
 func REPL() {
-	fmt.Println(`
+	fmt.Printf(`
       .-::":-.
     .'''..''..'.
    /..''..''..''\
@@ -38,7 +38,7 @@ func REPL() {
   ;'..''..''..'..;
    \..''..''..''/
     '.''..''...'
-      '-..::-' Golfcart` + "\n")
+      '-..::-' Golfcart v%v`+"\n", VERSION)
 	context := Context{}
 	context.Init()
 	InjectRuntime(&context)

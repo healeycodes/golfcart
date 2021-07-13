@@ -10,6 +10,8 @@ import (
 	"github.com/alecthomas/participle/v2/lexer"
 )
 
+const VERSION = 0.1
+
 func setNativeFunc(key string, nativeFunc Value, frame *StackFrame) {
 	frame.entries[key] = nativeFunc
 }
