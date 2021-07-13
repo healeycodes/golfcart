@@ -71,7 +71,7 @@ type Multiplication struct {
 	Pos lexer.Position
 
 	Unary *Unary          `@@`
-	Op    string          `( @( "/" | "*")`
+	Op    string          `( @( "/" | "*" | "%")`
 	Next  *Multiplication `  @@ )?`
 }
 
@@ -234,7 +234,7 @@ var (
 			{"Int", `[\d]+`, nil},
 			{"String", `"([^"]*)"`, nil},
 			{"Ident", `[\w]+`, nil},
-			{"Punct", `[-[!*()+_={}\|:;"<,>./]|]`, nil},
+			{"Punct", `[-[!*%()+_={}\|:;"<,>./]|]`, nil},
 		},
 	}))
 	parser = participle.MustBuild(&ExpressionList{}, participle.Lexer(_lexer),

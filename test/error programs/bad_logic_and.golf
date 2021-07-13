@@ -1,0 +1,2 @@
+// Requires two bools
+assert(true and 1, true)

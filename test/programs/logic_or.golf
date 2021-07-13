@@ -1,0 +1,3 @@
+assert(true or true, true)
+assert(true or false, true)
+assert(false or false, false)

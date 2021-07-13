@@ -26,6 +26,8 @@ func InjectRuntime(context *Context) {
 	setNativeFunc("len", NativeFunctionValue{name: "len", Exec: golfcartLen}, &context.stackFrame)
 	setNativeFunc("keys", NativeFunctionValue{name: "keys", Exec: golfcartKeys}, &context.stackFrame)
 	setNativeFunc("values", NativeFunctionValue{name: "values", Exec: golfcartValues}, &context.stackFrame)
+	setNativeFunc("map", NativeFunctionValue{name: "map", Exec: golfcartMap}, &context.stackFrame)
+	setNativeFunc("filter", NativeFunctionValue{name: "filter", Exec: golfcartFilter}, &context.stackFrame)
 }
 
 type NativeFunctionValue struct {
@@ -192,4 +194,56 @@ func golfcartValues(args []Value) (Value, error) {
 		return ListValue{val: values}, nil
 	}
 	return nil, fmt.Errorf("values() expects 1 argument of type dict")
+}
+
+func golfcartMap(args []Value) (Value, error) {
+	if len(args) != 2 {
+		return nil, fmt.Errorf("map() expects 2 arguments ([function], [list])")
+	}
+	function := args[0]
+	iterable := args[1]
+	if functionVal, okFunc := function.(FunctionValue); okFunc {
+		mappedValues := ListValue{val: make(map[int]*Value)}
+		if listVal, okList := iterable.(ListValue); okList {
+			for i, value := range listVal.val {
+				result, err := functionVal.Exec([]Value{*value})
+				if err != nil {
+					return nil, err
+				}
+				mappedValues.val[i] = &result
+			}
+			return mappedValues, nil
+		}
+	}
+	return nil, fmt.Errorf("map() expects 2 arguments ([function], [list])")
+}
+
+func golfcartFilter(args []Value) (Value, error) {
+	if len(args) != 2 {
+		return nil, fmt.Errorf("filter() expects 2 arguments ([function], [list])")
+	}
+	function := args[0]
+	iterable := args[1]
+	if functionVal, okFunc := function.(FunctionValue); okFunc {
+		filteredValues := ListValue{val: make(map[int]*Value)}
+		if listVal, okList := iterable.(ListValue); okList {
+			i := 0
+			for _, value := range listVal.val {
+				result, err := functionVal.Exec([]Value{*value})
+				if err != nil {
+					return nil, err
+				}
+				if boolVal, okBool := result.(BoolValue); okBool {
+					if boolVal.val {
+						filteredValues.val[i] = value
+						i++
+					}
+				} else {
+					return nil, fmt.Errorf("filter() expects the filter function to evaluate to a bool")
+				}
+			}
+			return filteredValues, nil
+		}
+	}
+	return nil, fmt.Errorf("filter() expects 2 arguments ([function], [list])")
 }

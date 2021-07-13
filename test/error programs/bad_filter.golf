@@ -1,0 +1,5 @@
+a = [3, 4]
+only_even = n => "not a bool"
+
+// filter functions should always return a bool
+assert(filter(only_even, a)[0], 4)

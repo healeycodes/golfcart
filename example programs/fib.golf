@@ -1,0 +1,30 @@
+// Naive
+fib = n => if n == 0 {
+    0
+} else if n == 1 {
+    1
+} else {
+    fib(n - 1) + fib(n - 2)
+}
+fib(20)
+
+// With memoization 
+cache = {"0": 0, "1": 1}
+fib_memo = n => if cache[n] != nil {
+    cache[n]
+} else {
+    cache[n] = fib_memo(n - 1) + fib_memo(n - 2)
+}
+fib_memo(20)
+
+// With memoization and closure
+fib_closure = x => {
+    cache = {"0": 0, "1": 1}
+    fib_memo = n => if cache[n] != nil {
+        cache[n]
+    } else {
+        cache[n] = fib_memo(n - 1) + fib_memo(n - 2)
+    }
+    fib_memo(x)
+}
+fib_closure(20)

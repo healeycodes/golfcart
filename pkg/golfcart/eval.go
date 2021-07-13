@@ -2,6 +2,7 @@ package golfcart
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 
@@ -160,7 +161,7 @@ func (numberValue NumberValue) Equals(other Value) (bool, error) {
 	if other, ok := unref(other).(NumberValue); ok {
 		return numberValue.val == other.val, nil
 	}
-	return false, fmt.Errorf("only numbers can be compared with numbers: %v %v", numberValue.val, other)
+	return false, nil
 }
 
 func nvToS(numberValue NumberValue) string {
@@ -193,8 +194,7 @@ func (stringValue StringValue) Equals(other Value) (bool, error) {
 		}
 		return true, nil
 	}
-	otherType, _ := golfcartType([]Value{stringValue})
-	return false, fmt.Errorf("strings can only be compared to other strings, not: %v", otherType)
+	return false, nil
 }
 
 type BoolValue struct {
@@ -206,7 +206,10 @@ func (boolValue BoolValue) String() string {
 }
 
 func (boolValue BoolValue) Equals(other Value) (bool, error) {
-	return boolValue == unref(other), nil
+	if otherValue, okBool := unref(other).(BoolValue); okBool {
+		return boolValue.val == otherValue.val, nil
+	}
+	return false, nil
 }
 
 type ReturnValue struct {
@@ -249,17 +252,18 @@ func (functionValue FunctionValue) Equals(other Value) (bool, error) {
 }
 
 func (functionValue FunctionValue) Exec(args []Value) (Value, error) {
+	callFrame := functionValue.frame.GetChild()
 	if len(args) != len(functionValue.parameters) {
 		return nil, fmt.Errorf("function called with incorrect number of arguments, wanted: %v, got: %v", len(functionValue.parameters), formatValues(args))
 	}
 	for i, parameter := range functionValue.parameters {
-		functionValue.frame.Set(parameter, args[i])
+		callFrame.Set(parameter, args[i])
 	}
 	var result Value
 	result = NilValue{}
 	var err error
 	for _, expression := range functionValue.expressions {
-		result, err = expression.Eval(functionValue.frame)
+		result, err = expression.Eval(callFrame)
 		if err != nil {
 			return nil, err
 		}
@@ -363,7 +367,7 @@ func (exprList ExpressionList) String() string {
 	return strings.Join(s, ", ")
 }
 
-func (exprList ExpressionList) Equals(_ Value) (bool, error) {
+func (exprList ExpressionList) Equals(other Value) (bool, error) {
 	return false, nil
 }
 
@@ -756,6 +760,9 @@ func (multiplication Multiplication) Eval(frame *StackFrame) (Value, error) {
 	if multiplication.Op == "/" {
 		return NumberValue{val: leftNum.val / rightNum.val}, nil
 	}
+	if multiplication.Op == "%" {
+		return NumberValue{val: float64(int(math.Round(leftNum.val)) % int(math.Round(rightNum.val)))}, nil
+	}
 	panic("unreachable Multiplication Eval")
 }
 
@@ -1004,7 +1011,7 @@ func (dictLiteral DictLiteral) Eval(frame *StackFrame) (Value, error) {
 				return nil, err
 			}
 			if key == "" {
-				return nil, fmt.Errorf("%v can't set empty string as dict key – did you forget to wrap a number with \" quote marks?",
+				return nil, fmt.Errorf("%v can't set empty string as dict key – did you forget to wrap a number with \"\" quote marks?",
 					dictLiteral.Pos)
 			}
 			dictValue.Set(key, value)
