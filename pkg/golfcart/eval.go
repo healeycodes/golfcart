@@ -1164,6 +1164,8 @@ func dictAccess(dictValue DictValue, access Value) (Value, error) {
 		key = string(strValue.val)
 	} else if idValue, okId := access.(IdentifierValue); okId {
 		key = string(idValue.val)
+	} else if numValue, okNum := access.(NumberValue); okNum {
+		key = nvToS(numValue)
 	} else {
 		golfType, err := golfcartType([]Value{idValue})
 		if err != nil {
