@@ -1,3 +1,0 @@
-a = [3, 4]
-only_even = n => n % 2 == 0
-assert(filter(only_even, a)[0], 4)

@@ -1,5 +1,0 @@
-a = [0, 1]
-b = [0, 1]
-
-// Check that the same items aren't returned
-assert(map((n) => n + 1, a)[0], b[0])

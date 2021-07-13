@@ -1,0 +1,12 @@
+map = (func, iterable) => {
+    result = []
+    for value in iterable {
+        result.append(func(value))
+    }
+    result
+}
+
+times_two = n => n * 2
+nums = [1, 2, 3, 4]
+
+log(map(times_two, nums))

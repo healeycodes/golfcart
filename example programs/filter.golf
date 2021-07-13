@@ -1,0 +1,14 @@
+filter = (func, iterable) => {
+    result = []
+    for value in iterable {
+        if func(value) == true {
+            result.append(value)
+        }
+    }
+    result
+}
+
+only_even = n => n % 2 == 0
+nums = [1, 2, 3, 4]
+
+log(filter(only_even, nums))
