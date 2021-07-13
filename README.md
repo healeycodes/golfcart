@@ -131,8 +131,8 @@ I didn't realise how restrctive my design goals were. A problem I ran into early
 
 // Instead, you do:
 a = [0]
-a[0] // Evaluates to `0`
+a[0]
 
 // or
-([0])[0] // Evaluates to `0`
+([0])[0]
 ```
