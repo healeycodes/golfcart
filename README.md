@@ -1,5 +1,7 @@
 # ⛳ golfcart
 
+[![Go](https://github.com/healeycodes/golfcart/actions/workflows/go.yml/badge.svg)](https://github.com/healeycodes/golfcart/actions/workflows/go.yml)
+
 golfcart is a minimal programming language inspired by Ink, JavaScript, and Python. It's implemented in Go.
 
 ```javascript
