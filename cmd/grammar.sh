@@ -1,1 +1,0 @@
-rm -f grammar.md && go run cmd/golfcart.go -ebnf > grammar.md
