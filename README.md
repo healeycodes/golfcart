@@ -107,7 +107,7 @@ For more detailed examples, see:
 
 ## Motivations
 
-This is a toy programming language that I built to take part in Advent of Code 2021 using my own programming language. And to learn how to write an interpreter from scratch. Previously, I read Crafting Interpreters and implemented the Lox programming language using Python, and partially ported Ink using Rust.
+This is a toy programming language that I built to take part in Advent of Code 2021 using my own programming language — and to learn how to write an interpreter from scratch. Previously, I read Crafting Interpreters and implemented the Lox programming language using Python, and partially ported Ink using Rust.
 
 I wanted to design a programming language that didn't use semi-colons or automatic semicolon insertion. So, no statements and everything should be an expression that evaluates to a value.
 - `if` evaluates to the successful branch
