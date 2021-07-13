@@ -2,7 +2,6 @@ package golfcart
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -46,14 +45,14 @@ func (nativeFunctionValue NativeFunctionValue) Equals(other Value) (bool, error)
 
 func golfcartAssert(args []Value) (Value, error) {
 	if len(args) != 2 {
-		return nil, errors.New("assert() expects 2 arguments")
+		return nil, fmt.Errorf("assert() expects 2 arguments")
 	}
 	equal, err := args[0].Equals(args[1])
 	if err != nil {
 		return nil, err
 	}
 	if !equal {
-		return nil, errors.New("assert failed: " + args[0].String() + " == " + args[1].String())
+		return nil, fmt.Errorf("assert failed: %v == %v", args[0], args[1])
 	}
 	return NilValue{}, nil
 }
@@ -75,7 +74,7 @@ func golfcartLog(args []Value) (Value, error) {
 
 func golfcartStr(args []Value) (Value, error) {
 	if len(args) != 1 {
-		return nil, errors.New("str() expects 1 argument of type num or bool")
+		return nil, fmt.Errorf("str() expects 1 argument of type num or bool")
 	}
 	value := args[0]
 	if strValue, okStr := value.(StringValue); okStr {
@@ -91,12 +90,12 @@ func golfcartStr(args []Value) (Value, error) {
 		return StringValue{val: []byte("false")}, nil
 	}
 
-	return nil, errors.New("str() expects 1 argument of type string, number, or bool")
+	return nil, fmt.Errorf("str() expects 1 argument of type string, number, or bool")
 }
 
 func golfcartNum(args []Value) (Value, error) {
 	if len(args) != 1 {
-		return nil, errors.New("num() expects 1 argument")
+		return nil, fmt.Errorf("num() expects 1 argument")
 	}
 	value := args[0]
 	if numValue, okNum := value.(NumberValue); okNum {
@@ -104,18 +103,18 @@ func golfcartNum(args []Value) (Value, error) {
 	}
 	strValue, okStr := value.(StringValue)
 	if !okStr {
-		return nil, errors.New("num() expects 1 argument of type str")
+		return nil, fmt.Errorf("num() expects 1 argument of type str")
 	}
 	f, err := strconv.ParseFloat(string(strValue.val), 64)
 	if err != nil {
-		return nil, errors.New("num() couldn't convert " + strValue.String() + " to num")
+		return nil, fmt.Errorf("num() couldn't convert '%v' to num", strValue)
 	}
 	return NumberValue{val: f}, nil
 }
 
 func golfcartType(args []Value) (Value, error) {
 	if len(args) != 1 {
-		return nil, errors.New("type() expects 1 argument")
+		return nil, fmt.Errorf("type() expects 1 argument")
 	}
 	value := args[0]
 	switch value.(type) {
@@ -136,12 +135,12 @@ func golfcartType(args []Value) (Value, error) {
 	case NilValue:
 		return StringValue{val: []byte("nil")}, nil
 	}
-	return nil, errors.New("unknown type")
+	return nil, fmt.Errorf("unknown type")
 }
 
 func golfcartLen(args []Value) (Value, error) {
 	if len(args) != 1 {
-		return nil, errors.New("len() expects 1 argument of type string, list, or dict")
+		return nil, fmt.Errorf("len() expects 1 argument of type string, list, or dict")
 	}
 	value := args[0]
 	if stringVal, okStr := value.(StringValue); okStr {
@@ -153,12 +152,12 @@ func golfcartLen(args []Value) (Value, error) {
 	if dictVal, okDict := value.(DictValue); okDict {
 		return NumberValue{val: float64(len(dictVal.val))}, nil
 	}
-	return nil, errors.New("len() expects 1 argument of type string, list, or dict")
+	return nil, fmt.Errorf("len() expects 1 argument of type string, list, or dict")
 }
 
 func golfcartKeys(args []Value) (Value, error) {
 	if len(args) != 1 {
-		return nil, errors.New("keys() expects 1 argument of type dict")
+		return nil, fmt.Errorf("keys() expects 1 argument of type dict")
 	}
 	value := args[0]
 	if dictVal, okDict := value.(DictValue); okDict {
@@ -172,12 +171,12 @@ func golfcartKeys(args []Value) (Value, error) {
 		}
 		return ListValue{val: keys}, nil
 	}
-	return nil, errors.New("keys() expects 1 argument of type dict")
+	return nil, fmt.Errorf("keys() expects 1 argument of type dict")
 }
 
 func golfcartValues(args []Value) (Value, error) {
 	if len(args) != 1 {
-		return nil, errors.New("values() expects 1 argument of type dict")
+		return nil, fmt.Errorf("values() expects 1 argument of type dict")
 	}
 	value := args[0]
 	if dictVal, okDict := value.(DictValue); okDict {
@@ -190,5 +189,5 @@ func golfcartValues(args []Value) (Value, error) {
 		}
 		return ListValue{val: values}, nil
 	}
-	return nil, errors.New("values() expects 1 argument of type dict")
+	return nil, fmt.Errorf("values() expects 1 argument of type dict")
 }

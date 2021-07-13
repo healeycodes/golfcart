@@ -1,7 +1,6 @@
 package golfcart
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -56,7 +55,7 @@ func (frame *StackFrame) Get(key string) (Value, error) {
 			break
 		}
 	}
-	return nil, errors.New("cannot find value for '" + key + "'")
+	return nil, fmt.Errorf("cannot find value for key '%v'", key)
 }
 
 func (frame *StackFrame) Set(key string, value Value) {
@@ -161,7 +160,7 @@ func (numberValue NumberValue) Equals(other Value) (bool, error) {
 	if other, ok := unref(other).(NumberValue); ok {
 		return numberValue.val == other.val, nil
 	}
-	return false, errors.New("only numbers can be compared with numbers")
+	return false, fmt.Errorf("only numbers can be compared with numbers: %v %v", numberValue.val, other)
 }
 
 func nvToS(numberValue NumberValue) string {
@@ -324,7 +323,7 @@ func (dictValue *DictValue) Get(key string) (*Value, error) {
 	if ok {
 		return value, nil
 	}
-	return nil, errors.New("cannot find value for key: " + key)
+	return nil, fmt.Errorf("cannot find value for key: '%v'", key)
 }
 
 func (dictValue *DictValue) GetOrSet(key string, newValue *Value) *Value {
@@ -448,7 +447,7 @@ func (assignment Assignment) Eval(frame *StackFrame) (Value, error) {
 			frame.Set(leftId.val, right)
 			return right, nil
 		}
-		return nil, fmt.Errorf("can't assign to non-identifier: %v", left)
+		return nil, fmt.Errorf("%v can't assign to non-identifier: %v", assignment.Pos, left)
 	}
 	panic("unreachable Assignment Eval")
 }
@@ -469,7 +468,34 @@ func (logicAnd LogicAnd) Eval(frame *StackFrame) (Value, error) {
 	if logicAnd.Op == "" {
 		return left, nil
 	}
-	panic("unreachable LogicAnd Eval")
+	right, err := logicAnd.Next.Eval(frame)
+	if err != nil {
+		return nil, err
+	}
+	left, err = unwrap(left, frame)
+	if err != nil {
+		return nil, err
+	}
+	right, err = unwrap(right, frame)
+	if err != nil {
+		return nil, err
+	}
+
+	if boolValue, okBool := left.(BoolValue); okBool {
+		if boolValue.val {
+			if boolValue, okBool := right.(BoolValue); okBool {
+				if boolValue.val {
+					return boolValue, nil
+				}
+			} else {
+				return nil, fmt.Errorf("%v only bools can be compared with 'and', not: %v", logicAnd.Pos, right)
+			}
+		}
+	} else {
+		return nil, fmt.Errorf("%v only bools can be compared with 'and', not: %v", logicAnd.Pos, left)
+	}
+
+	return BoolValue{val: false}, nil
 }
 
 func (logicOr LogicOr) String() string {
@@ -488,7 +514,34 @@ func (logicOr LogicOr) Eval(frame *StackFrame) (Value, error) {
 	if logicOr.Op == "" {
 		return left, nil
 	}
-	return nil, errors.New("unimplemented LogicOr Eval")
+	right, err := logicOr.Next.Eval(frame)
+	if err != nil {
+		return nil, err
+	}
+	left, err = unwrap(left, frame)
+	if err != nil {
+		return nil, err
+	}
+	right, err = unwrap(right, frame)
+	if err != nil {
+		return nil, err
+	}
+
+	if boolValue, okBool := left.(BoolValue); okBool {
+		if boolValue.val {
+			return boolValue, nil
+		}
+	} else {
+		return nil, fmt.Errorf("%v only bools can be compared with 'or', not: %v", logicOr.Pos, left)
+	}
+	if boolValue, okBool := right.(BoolValue); okBool {
+		if boolValue.val {
+			return boolValue, nil
+		}
+	} else {
+		return nil, fmt.Errorf("%v only bools can be compared with 'or', not: %v", logicOr.Pos, right)
+	}
+	return BoolValue{val: false}, nil
 }
 
 func (equality Equality) String() string {
@@ -538,7 +591,7 @@ func (equality Equality) Eval(frame *StackFrame) (Value, error) {
 	} else if equality.Op == "!=" {
 		return BoolValue{val: !result}, nil
 	}
-	return nil, errors.New("unimplemented Equality Eval")
+	panic("unreachable Equality Eval")
 }
 
 func (comparison Comparison) String() string {
@@ -587,7 +640,7 @@ func (comparison Comparison) Eval(frame *StackFrame) (Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	return nil, fmt.Errorf("only numbers can be compared: %v %v %v", leftType, comparison.Op, rightType)
+	return nil, fmt.Errorf("%v only numbers can be compared: %v %v %v", comparison.Pos, leftType, comparison.Op, rightType)
 }
 
 func (addition Addition) String() string {
@@ -885,7 +938,8 @@ func (ifExpression If) Eval(frame *StackFrame) (Value, error) {
 						return result, nil
 					}
 				} else {
-					return nil, errors.New("if expression conditional should evaluate to true or false")
+					return nil, fmt.Errorf("%v if expression conditional should evaluate to true or false",
+						ifExpression.Pos)
 				}
 				current = current.Next
 			}
@@ -900,7 +954,8 @@ func (ifExpression If) Eval(frame *StackFrame) (Value, error) {
 			return result, nil
 		}
 	} else {
-		return nil, errors.New("if expression conditional should evaluate to true or false")
+		return nil, fmt.Errorf("%v if expression conditional should evaluate to true or false",
+			ifExpression.Pos)
 	}
 	return result, nil
 }
@@ -947,6 +1002,10 @@ func (dictLiteral DictLiteral) Eval(frame *StackFrame) (Value, error) {
 			value, err := dictEntry.Value.Eval(frame)
 			if err != nil {
 				return nil, err
+			}
+			if key == "" {
+				return nil, fmt.Errorf("%v can't set empty string as dict key – did you forget to wrap a number with \" quote marks?",
+					dictLiteral.Pos)
 			}
 			dictValue.Set(key, value)
 		}
@@ -1032,13 +1091,13 @@ func (call Call) Eval(frame *StackFrame) (Value, error) {
 					err = listPrepend(listValue, chainCall, frame)
 				} else if idVal.val == "pop" {
 					if len(listValue.val) == 0 {
-						err = errors.New("cannot pop() from an empty list")
+						err = fmt.Errorf("cannot pop() from an empty list")
 					} else {
 						return listValue.Pop(), nil
 					}
 				} else if idVal.val == "pop_left" {
 					if len(listValue.val) == 0 {
-						err = errors.New("cannot pop_left() from an empty list")
+						err = fmt.Errorf("cannot pop_left() from an empty list")
 					} else {
 						return listValue.PopLeft(), nil
 					}
@@ -1136,7 +1195,7 @@ func listAccess(listValue ListValue, access Value) (Value, error) {
 
 func listAppend(listValue ListValue, chainCall *CallChain, frame *StackFrame) error {
 	if chainCall.Next == nil || chainCall.Next.Parameters == nil || len(*chainCall.Next.Parameters) != 1 {
-		return errors.New("append() expects 1 argument")
+		return fmt.Errorf("append() expects 1 argument")
 	}
 	args, err := parseArgs(chainCall.Next.Parameters, frame)
 	if err != nil {
@@ -1148,7 +1207,7 @@ func listAppend(listValue ListValue, chainCall *CallChain, frame *StackFrame) er
 
 func listPrepend(listValue ListValue, chainCall *CallChain, frame *StackFrame) error {
 	if chainCall.Next == nil || chainCall.Next.Parameters == nil || len(*chainCall.Next.Parameters) != 1 {
-		return errors.New("prepend() expects 1 argument")
+		return fmt.Errorf("prepend() expects 1 argument")
 	}
 	args, err := parseArgs(chainCall.Next.Parameters, frame)
 	if err != nil {
