@@ -38,7 +38,7 @@ func REPL() {
   ;'..''..''..'..;
    \..''..''..''/
     '.''..''...'
-      '-..::-' Golfcart v%v`+"\n", VERSION)
+      '-..::-' golfcart v%v`+"\n", VERSION)
 	context := Context{}
 	context.Init()
 	InjectRuntime(&context)
