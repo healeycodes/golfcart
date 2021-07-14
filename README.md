@@ -14,15 +14,15 @@ Golfcart is a minimal programming language inspired by Ink, JavaScript, and Pyth
 
 ```javascript
 for i = 1; i < 101; i = i + 1 {
-    if i % 3 == 0 and i % 5 == 0 {
-        log("FizzBuzz")
+    log(if i % 3 == 0 and i % 5 == 0 {
+ 	    "FizzBuzz"
     } else if i % 3 == 0 {
-        log("Fizz")
+       "Fizz"
     } else if i % 5 == 0 {
-        log("Buzz")
+       "Buzz"
     } else {
-        log(str(i))
-    }
+       str(i)
+    })
 }
 ```
 
