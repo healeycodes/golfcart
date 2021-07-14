@@ -174,7 +174,7 @@ type ListLiteral struct {
 }
 ```
 
-Once the source code has been built into the syntax tree, each node of this tree is walked — as in _tree-walk_ (see [eval.go](https://github.com/healeycodes/golfcart/blob/main/pkg/golfcart/eval.go)). The code archiecture is similar to [Ink](https://github.com/thesephist/ink)'s — the way stack frames work is similar and I used a near-identical interface for values.
+Once the source code has been built into the syntax tree, each node of this tree is walked — as in _tree-walk_ (see [eval.go](https://github.com/healeycodes/golfcart/blob/main/pkg/golfcart/eval.go)). The code architecture is similar to [Ink](https://github.com/thesephist/ink)'s — the way stack frames work is similar and I used a near-identical interface for values.
 
 ```go
 type Value interface {
