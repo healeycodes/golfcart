@@ -15,7 +15,7 @@ Golfcart is a minimal programming language inspired by Ink, JavaScript, and Pyth
 ```javascript
 for i = 1; i < 101; i = i + 1 {
     log(if i % 3 == 0 and i % 5 == 0 {
- 	    "FizzBuzz"
+       "FizzBuzz"
     } else if i % 3 == 0 {
        "Fizz"
     } else if i % 5 == 0 {
@@ -122,13 +122,15 @@ For more detailed examples, see:
 
 ## Motivations
 
-This is a toy programming language that I built to use for Advent of Code 2021. Another motivation was to learn how to write an interpreter from scratch. Previously, I read Crafting Interpreters and [implemented the Lox programming language](https://github.com/healeycodes/hoot-language) using Python, and [partially ported Ink](https://github.com/healeycodes/quill) using Rust. Another introduction to interpreters I enjoyed was [A Frontend Programmer's Guide to Languages](https://thatjdanisso.cool/programming-languages). The [Ink blog](https://dotink.co/posts/) is also great.
+This is a toy programming language that I built to use for Advent of Code 2021.
 
-I wanted to design a programming language that didn't use semi-colons or automatic semicolon insertion. So, no statements and everything should be an expression that evaluates to a value. For example:
+Another motivation was to learn how to write an interpreter from scratch. Previously, I read Crafting Interpreters and [implemented the Lox programming language](https://github.com/healeycodes/hoot-language) using Python, and [partially ported Ink](https://github.com/healeycodes/quill) using Rust. Another introduction to interpreters I enjoyed was [A Frontend Programmer's Guide to Languages](https://thatjdanisso.cool/programming-languages). The [Ink blog](https://dotink.co/posts/) is also great.
+
+I wanted to design a small programming language that didn't use semi-colons or automatic semicolon insertion. So, no statements and everything should be an expression that evaluates to a value. For example:
 - `if/else if/else` evaluates to the successful branch
-- a variable declaration evalutes to the value
-- setting a dict value evalutes to the value
-- a for loop evalutes to the number of times the condition expression succeeded
+- A variable declaration evalutes to the value
+- Setting a dict value evalutes to the value
+- A for loop evalutes to the number of times the condition expression succeeded
 
 ```javascript
 assert(
@@ -136,7 +138,7 @@ assert(
 )
 ```
 
-However, I didn't realise how restrictive my design goals were. A problem I ran into early was accessing an item from a literal.
+However, I didn't realise how restrictive this design goal was. A problem I ran into early was accessing an item from a literal.
 
 ```javascript
 [1][0] // This evaluates to [0] because Golfcart thinks it's two lists
@@ -160,9 +162,9 @@ Ultimately, I've learned a lot and this won't be my last language!
 
 Golfcart is a tree-walk interpreter. Its one dependancy is the [Participle](https://github.com/alecthomas/participle) parsing library, which consumes a parser grammer written using Go structs and a RegEx-like syntax to create a syntax tree (see [parser.go](https://github.com/healeycodes/golfcart/blob/main/pkg/golfcart/parse.go)). This library let me move fast and refactor parsing bugs without headaches.
 
-A piece of source code is turned into tokens by Participle's lexer. The lexer uses token definitions. For example, Golfcart's identifier RegEx is: ```{"Ident", `[\w]+`, nil}```). These tokens are parsed into a syntax tree using struct definitions.
+A piece of source code is turned into tokens by Participle's lexer. The lexer uses token definitions. For example, Golfcart's identifier defined as: ```{"Ident", `[\w]+`, nil}```). These tokens are parsed into a syntax tree using struct definitions.
 
-Here's a list literal:
+Here's the list literal:
 
 ```go
 type ListLiteral struct {
@@ -172,7 +174,7 @@ type ListLiteral struct {
 }
 ```
 
-Once the source code has been built into the syntax tree, each node of this tree is walked — as in _tree-walk_ (see [eval.go](https://github.com/healeycodes/golfcart/blob/main/pkg/golfcart/eval.go)). The code archiecture is similar to [Ink](https://github.com/thesephist/ink)'s — the way stack frames work is similar, and I used a near-identical interface for values. 
+Once the source code has been built into the syntax tree, each node of this tree is walked — as in _tree-walk_ (see [eval.go](https://github.com/healeycodes/golfcart/blob/main/pkg/golfcart/eval.go)). The code archiecture is similar to [Ink](https://github.com/thesephist/ink)'s — the way stack frames work is similar and I used a near-identical interface for values.
 
 ```go
 type Value interface {
