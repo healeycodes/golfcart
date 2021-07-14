@@ -110,6 +110,8 @@ For more detailed examples, see:
 - [Specification programs](https://github.com/healeycodes/golfcart/tree/main/example%20programs/spec%20programs)
 - [Programs that purposefully throw errors](https://github.com/healeycodes/golfcart/tree/main/example%20programs/error%20programs)
 
+(All the above are used as part of Golfcart's test suite)
+
 ## Motivations
 
 This is a toy programming language that I built to use for Advent of Code 2021. Another motivation was to learn how to write an interpreter from scratch. Previously, I read Crafting Interpreters and [implemented the Lox programming language](https://github.com/healeycodes/hoot-language) using Python, and [partially ported Ink](https://github.com/healeycodes/quill) using Rust. Another introduction to interpreters I enjoyed was [A Frontend Programmer's Guide to Languages](https://thatjdanisso.cool/programming-languages).
@@ -126,22 +128,21 @@ assert(
 )
 ```
 
-However, I didn't realise how restrctive my design goals were. A problem I ran into early was accessing an item from a literal.
+However, I didn't realise how restrictive my design goals were. A problem I ran into early was accessing an item from a literal.
 
 ```javascript
-[1][0] // This evaluates to [0]
-       // Because Golfcart thinks it's two lists
+[1][0] // This evaluates to [0] because Golfcart thinks it's two lists
 
 // Instead, you do:
 a = [1]
 a[0]
 ```
 
-The main problem with Golfcart is that there are differences between how Golfcart programs run in my head vs. the interpreter. This is because I jumped to implementing the language and didn't spend enough time designing. Linus Lee has some interesting notes on designing small interpreters in [Build your own programming language](https://thesephist.com/posts/pl/#impl)
+The main problem with Golfcart is that there are differences between how Golfcart programs run in my head vs. in the interpreter. This is because I jumped to implementing the language and didn't spend enough time designing. Linus Lee has some interesting notes on designing small interpreters in [Build your own programming language](https://thesephist.com/posts/pl/#impl).
 
 > In this phase, I usually keep a text document where I experiment with syntax by writing small programs in the new as-yet-nonexistent language. I write notes and questions for myself in comments in the code, and try to implement small algorithms and data structures like recursive mathematical functions, sorting algorithms, and small web servers.
 
-If I had more predefinied programs to start with (to run as tests), I would have spotted the evaluation mis-alignments early enough to re-think the design.
+If I had more predefinied programs to start with (to run as tests), I would have noticed the divergence of how programs are actually evaluated early enough to re-think the design.
 
 This project's example programs were written after the fact, within the confines of the language's limitations.
 
@@ -151,9 +152,19 @@ Ultimately, I've learned a lot and this won't be my last language!
 
 Golfcart is a tree-walk interpreter. It's one dependancy is the [Participle](https://github.com/alecthomas/participle) parsing library, which consumes a parser grammer written using Go structs and a RegEx-like syntax to give you an syntax tree (see [parser.go](https://github.com/healeycodes/golfcart/blob/main/pkg/golfcart/parse.go)). This library let me more fast and refactor parsing bugs without headaches.
 
-TODO: general interpreter notes here.
+Source code is turned into tokens by Participle's lexer which consumes token definitions. For example, Golfcart's identifier RegEx is: ```{"Ident", `[\w]+`, nil}```). These tokens are parsed into a syntax tree using struct definitions.
 
-While iterating this syntax tree of literal values, the expressions, types, and calls are evaulated (see [eval.go](https://github.com/healeycodes/golfcart/blob/main/pkg/golfcart/eval.go)). The code archiecture is similar to [Ink](https://github.com/thesephist/ink)'s. The way stack frames work is similar, and I used a near-identical interface for values. 
+Here's a list literal:
+
+```go
+type ListLiteral struct {
+	Pos lexer.Position
+
+	Expressions *[]Expression `"[" ( @@ ( "," @@ )* )? "]"`
+}
+```
+
+Once the source code has been built into the syntax tree, it's evaulated (see [eval.go](https://github.com/healeycodes/golfcart/blob/main/pkg/golfcart/eval.go)). The code archiecture is similar to [Ink](https://github.com/thesephist/ink)'s — the way stack frames work is similar, and I used a near-identical interface for values. 
 
 ```go
 type Value interface {
@@ -162,8 +173,11 @@ type Value interface {
 }
 ```
 
-There are runtime functions (e.g. input/output, type assertions and casts, keys/values, etc.) in [runtime.go](https://github.com/healeycodes/golfcart/blob/main/pkg/golfcart/runtime.go) and the REPL can be found in [run.go](https://github.com/healeycodes/golfcart/blob/main/pkg/golfcart/run.go).
+
+<br>
 
 Whenever I implemented a new type of value or syntax, I added a specification program with an assertion. When I came across a bug, I sometimes wrote an error program to purposefully throw an error. This project's tests `go test ./...` ensure that the specification programs and example programs run without any errors (an `assert()` call throws an error and quites) and that the error programs all quit without a `0` exit code.
 
 The Participle library provides line-numbers for the lexer tokens it finds. These are added to the value structs during evaluation and some program errors have line-numbers (but all have error text, the values encountered, and hopefully enough information to find and fix it). Golfcart lacks a mature stack trace.
+
+There are runtime functions (e.g. input/output, type assertions and casts, keys/values, etc.) in [runtime.go](https://github.com/healeycodes/golfcart/blob/main/pkg/golfcart/runtime.go) and the REPL can be found in [run.go](https://github.com/healeycodes/golfcart/blob/main/pkg/golfcart/run.go).
