@@ -45,7 +45,7 @@ assert(my_counter(), 2)
 
 ## Getting started
 
-A Golfcart program is a series of expressions. Linebreaks are optional and there are no semi-colons. The final expression is sent to stdout.
+A Golfcart program is a series of expressions. Line breaks are optional and there are no semi-colons. The final expression is sent to stdout.
 
 ```javascript
 a = 1 b = 2 assert(a + b, 3)
