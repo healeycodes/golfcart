@@ -1091,11 +1091,12 @@ func (call Call) Eval(frame *StackFrame) (Value, error) {
 		}
 
 		if listValue, okList := value.(ListValue); okList && access != nil {
+			var alteredList Value
 			if idVal, okId := access.(IdentifierValue); okId {
 				if idVal.val == "append" {
-					err = listAppend(listValue, chainCall, frame)
+					alteredList, err = listAppend(listValue, chainCall, frame)
 				} else if idVal.val == "prepend" {
-					err = listPrepend(listValue, chainCall, frame)
+					alteredList, err = listPrepend(listValue, chainCall, frame)
 				} else if idVal.val == "pop" {
 					if len(listValue.val) == 0 {
 						err = fmt.Errorf("cannot pop() from an empty list")
@@ -1112,7 +1113,7 @@ func (call Call) Eval(frame *StackFrame) (Value, error) {
 				if err != nil {
 					return nil, err
 				}
-				return NilValue{}, nil
+				return alteredList, nil
 			}
 			value, err = listAccess(listValue, access)
 			if err != nil {
@@ -1200,28 +1201,28 @@ func listAccess(listValue ListValue, access Value) (Value, error) {
 	return nil, fmt.Errorf("list access expects 1 argument of type number, not %v", value)
 }
 
-func listAppend(listValue ListValue, chainCall *CallChain, frame *StackFrame) error {
+func listAppend(listValue ListValue, chainCall *CallChain, frame *StackFrame) (Value, error) {
 	if chainCall.Next == nil || chainCall.Next.Parameters == nil || len(*chainCall.Next.Parameters) != 1 {
-		return fmt.Errorf("append() expects 1 argument")
+		return nil, fmt.Errorf("append() expects 1 argument")
 	}
 	args, err := parseArgs(chainCall.Next.Parameters, frame)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	listValue.Append(args[0])
-	return nil
+	return listValue, nil
 }
 
-func listPrepend(listValue ListValue, chainCall *CallChain, frame *StackFrame) error {
+func listPrepend(listValue ListValue, chainCall *CallChain, frame *StackFrame) (Value, error) {
 	if chainCall.Next == nil || chainCall.Next.Parameters == nil || len(*chainCall.Next.Parameters) != 1 {
-		return fmt.Errorf("prepend() expects 1 argument")
+		return nil, fmt.Errorf("prepend() expects 1 argument")
 	}
 	args, err := parseArgs(chainCall.Next.Parameters, frame)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	listValue.Prepend(args[0])
-	return nil
+	return listValue, nil
 }
 
 func dictAccess(dictValue DictValue, access Value) (Value, error) {
