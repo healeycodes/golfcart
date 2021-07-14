@@ -46,31 +46,36 @@ a = 1 b = 2 assert(a + b, 3)
 There are seven types. A type-check can be performed with `type()`.
 
 ```javascript
-// bools
+// Bools
 true or false
 true and true
 
-// numbers
+// Numbers
 1
-1.1
+1.1 + 1.1 // 2.2
 
-// strings
+// Strings
 "multi-line
 string"
+"1" + "2" // "12"
 
-// lists
+// Lists
 [1, 2]
+nums = [3, 4]
+nums.append(5) // [3, 4, 5]
 
-// dicts
-{a: 1} // accessed by `.a` or `["a"]` like JavaScript
+// Dicts
+{a: 1} // Accessed by `.a` or `["a"]` like JavaScript
+keys({a: 1}) // ["a"]
 
-// functions
-() => nil
+// Functions
+() => nil // An anonymous function, assignable by variable
 n => n + 1
 sum = (x, y) => x + y
 
-// nil
+// Nil
 nil
+nil == nil // true
 ```
 
 The fibonacci sequence.
@@ -124,18 +129,23 @@ assert(
 However, I didn't realise how restrctive my design goals were. A problem I ran into early was accessing an item from a literal.
 
 ```javascript
-[0] // A list with the number zero
-[0] // This is a parsing error!
-    // Why? Well, are we evaluating another list
-    // or trying to access the zeroth element of the literal on line 1
+[1][0] // This evaluates to [0]
+       // Because Golfcart thinks it's two lists
 
 // Instead, you do:
-a = [0]
+a = [1]
 a[0]
-
-// or
-([0])[0]
 ```
+
+The main problem with Golfcart is that there are differences between how Golfcart programs run in my head vs. the interpreter. This is because I jumped to implementing the language and didn't spend enough time designing. Linus Lee has some interesting notes on designing small interpreters in [Build your own programming language](https://thesephist.com/posts/pl/#impl)
+
+> In this phase, I usually keep a text document where I experiment with syntax by writing small programs in the new as-yet-nonexistent language. I write notes and questions for myself in comments in the code, and try to implement small algorithms and data structures like recursive mathematical functions, sorting algorithms, and small web servers.
+
+If I had more predefinied programs to start with (to run as tests), I would have spotted the evaluation mis-alignments early enough to re-think the design.
+
+This project's example programs were written after the fact, within the confines of the language's limitations.
+
+Ultimately, I've learned a lot and this won't be my last language!
 
 ## Implementation
 
