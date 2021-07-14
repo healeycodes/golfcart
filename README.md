@@ -18,7 +18,7 @@ for i = 1; i < 101; i = i + 1 {
 }
 ```
 
-It's a dynamic typed language with support for bools, strings, numbers (float64), lists, dicts, and nil (null). There is full support for closures and functions can alter any variable in a higher scope.
+It's a dynamic strongly typed language with support for bools, strings, numbers (float64), lists, dicts, and nil (null). There is full support for closures and functions can alter any variable in a higher scope.
 
 ```javascript
 counter = () => {
@@ -37,7 +37,7 @@ assert(my_counter(), 2)
 
 ## Getting started
 
-A Golfcart program is a series of expressions. Linebreaks are optional and there are no semi-colons.
+A Golfcart program is a series of expressions. Linebreaks are optional and there are no semi-colons. The final expression is sent to stdout.
 
 ```javascript
 a = 1 b = 2 assert(a + b, 3)
@@ -69,7 +69,7 @@ nums.append(5) // [3, 4, 5]
 keys({a: 1}) // ["a"]
 
 // Functions
-() => nil // An anonymous function, assignable by variable
+_ => nil // All user-defined functions are anonymous, assignable by variable
 n => n + 1
 sum = (x, y) => x + y
 
@@ -114,7 +114,7 @@ For more detailed examples, see:
 
 ## Motivations
 
-This is a toy programming language that I built to use for Advent of Code 2021. Another motivation was to learn how to write an interpreter from scratch. Previously, I read Crafting Interpreters and [implemented the Lox programming language](https://github.com/healeycodes/hoot-language) using Python, and [partially ported Ink](https://github.com/healeycodes/quill) using Rust. Another introduction to interpreters I enjoyed was [A Frontend Programmer's Guide to Languages](https://thatjdanisso.cool/programming-languages).
+This is a toy programming language that I built to use for Advent of Code 2021. Another motivation was to learn how to write an interpreter from scratch. Previously, I read Crafting Interpreters and [implemented the Lox programming language](https://github.com/healeycodes/hoot-language) using Python, and [partially ported Ink](https://github.com/healeycodes/quill) using Rust. Another introduction to interpreters I enjoyed was [A Frontend Programmer's Guide to Languages](https://thatjdanisso.cool/programming-languages). The [Ink blog](https://dotink.co/posts/) is also great.
 
 I wanted to design a programming language that didn't use semi-colons or automatic semicolon insertion. So, no statements and everything should be an expression that evaluates to a value. For example:
 - `if/else if/else` evaluates to the successful branch
@@ -138,21 +138,21 @@ a = [1]
 a[0]
 ```
 
+While it's too late to add semi-colon separated statements to Golfcart, I have a new found appreciation for `;`.
+
 The main problem with Golfcart is that there are differences between how Golfcart programs run in my head vs. in the interpreter. This is because I jumped to implementing the language and didn't spend enough time designing. Linus Lee has some interesting notes on designing small interpreters in [Build your own programming language](https://thesephist.com/posts/pl/#impl).
 
 > In this phase, I usually keep a text document where I experiment with syntax by writing small programs in the new as-yet-nonexistent language. I write notes and questions for myself in comments in the code, and try to implement small algorithms and data structures like recursive mathematical functions, sorting algorithms, and small web servers.
 
-If I had more predefinied programs to start with (to run as tests), I would have noticed the divergence of how programs are actually evaluated early enough to re-think the design.
-
-This project's example programs were written after the fact, within the confines of the language's limitations.
+If I had more predefinied programs to start with (to run as tests), I would have noticed the divergence of how programs are actually evaluated early enough to re-think the design. This project's example programs were written after the fact within the confines of the language's limitations.
 
 Ultimately, I've learned a lot and this won't be my last language!
 
 ## Implementation
 
-Golfcart is a tree-walk interpreter. It's one dependancy is the [Participle](https://github.com/alecthomas/participle) parsing library, which consumes a parser grammer written using Go structs and a RegEx-like syntax to give you an syntax tree (see [parser.go](https://github.com/healeycodes/golfcart/blob/main/pkg/golfcart/parse.go)). This library let me more fast and refactor parsing bugs without headaches.
+Golfcart is a tree-walk interpreter. Its one dependancy is the [Participle](https://github.com/alecthomas/participle) parsing library, which consumes a parser grammer written using Go structs and a RegEx-like syntax to create a syntax tree (see [parser.go](https://github.com/healeycodes/golfcart/blob/main/pkg/golfcart/parse.go)). This library let me move fast and refactor parsing bugs without headaches.
 
-Source code is turned into tokens by Participle's lexer which consumes token definitions. For example, Golfcart's identifier RegEx is: ```{"Ident", `[\w]+`, nil}```). These tokens are parsed into a syntax tree using struct definitions.
+A piece of source code is turned into tokens by Participle's lexer. The lexer uses token definitions. For example, Golfcart's identifier RegEx is: ```{"Ident", `[\w]+`, nil}```). These tokens are parsed into a syntax tree using struct definitions.
 
 Here's a list literal:
 
@@ -164,7 +164,7 @@ type ListLiteral struct {
 }
 ```
 
-Once the source code has been built into the syntax tree, it's evaulated (see [eval.go](https://github.com/healeycodes/golfcart/blob/main/pkg/golfcart/eval.go)). The code archiecture is similar to [Ink](https://github.com/thesephist/ink)'s — the way stack frames work is similar, and I used a near-identical interface for values. 
+Once the source code has been built into the syntax tree, each node of this tree is walked — as in _tree-walk_ (see [eval.go](https://github.com/healeycodes/golfcart/blob/main/pkg/golfcart/eval.go)). The code archiecture is similar to [Ink](https://github.com/thesephist/ink)'s — the way stack frames work is similar, and I used a near-identical interface for values. 
 
 ```go
 type Value interface {
@@ -173,11 +173,20 @@ type Value interface {
 }
 ```
 
-
 <br>
 
-Whenever I implemented a new type of value or syntax, I added a specification program with an assertion. When I came across a bug, I sometimes wrote an error program to purposefully throw an error. This project's tests `go test ./...` ensure that the specification programs and example programs run without any errors (an `assert()` call throws an error and quites) and that the error programs all quit without a `0` exit code.
+Whenever I implemented a new type of value or syntax, I added a specification program with an assertion. When I came across a bug, I sometimes wrote an error program to purposefully throw an error. This project's tests `go test ./...` ensure that the specification programs and example programs run without any errors (an `assert()` call throws an error and quits) and that the error programs all error out.
 
-The Participle library provides line-numbers for the lexer tokens it finds. These are added to the value structs during evaluation and some program errors have line-numbers (but all have error text, the values encountered, and hopefully enough information to find and fix it). Golfcart lacks a mature stack trace.
+The Participle library provides line-numbers for each lexer token. These are added to the value structs during evaluation and so some Golfcart errors have line-numbers (all have error text, and hopefully enough information to find and fix). Golfcart lacks a mature stack trace.
 
 There are runtime functions (e.g. input/output, type assertions and casts, keys/values, etc.) in [runtime.go](https://github.com/healeycodes/golfcart/blob/main/pkg/golfcart/runtime.go) and the REPL can be found in [run.go](https://github.com/healeycodes/golfcart/blob/main/pkg/golfcart/run.go).
+
+
+## Contributions/issues
+
+More than welcome! Raise an issue with a bug report/feature proposal and let's chat.
+
+## License
+
+MIT.
+
