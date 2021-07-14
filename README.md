@@ -154,7 +154,7 @@ The main problem with Golfcart is that there are differences between how Golfcar
 
 > In this phase, I usually keep a text document where I experiment with syntax by writing small programs in the new as-yet-nonexistent language. I write notes and questions for myself in comments in the code, and try to implement small algorithms and data structures like recursive mathematical functions, sorting algorithms, and small web servers.
 
-If I had more predefinied programs to start with (to run as tests), I would have noticed the divergence of how programs are actually evaluated early enough to re-think the design. This project's example programs were written after the fact within the confines of the language's limitations.
+If I had more predefined programs to start with (to run as tests), I would have noticed the divergence of how programs are actually evaluated early enough to re-think the design. This project's example programs were written after the fact within the confines of the language's limitations.
 
 Ultimately, I've learned a lot and this won't be my last language!
 
