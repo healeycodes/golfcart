@@ -128,8 +128,8 @@ Another motivation was to learn how to write an interpreter from scratch. Previo
 
 I wanted to design a small programming language that didn't use semi-colons or automatic semicolon insertion. So, no statements and everything should be an expression that evaluates to a value. For example:
 - `if/else if/else` evaluates to the successful branch
-- A variable declaration evalutes to the value
-- Setting a dict value evalutes to the value
+- A variable declaration evaluates to the value
+- Setting a dict value evaluates to the value
 - A for loop evalutes to the number of times the condition expression succeeded
 
 ```javascript
