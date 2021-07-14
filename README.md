@@ -6,6 +6,7 @@
   * [Motivations](#motivations)
   * [Implementation](#implementation)
   * [Usage](#usage)
+  * [Building and tests](#building-and-tests)
   * [Contributions](#contributions)
   * [License](#license)
 
