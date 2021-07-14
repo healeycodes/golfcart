@@ -1,0 +1,10 @@
+name = "Alice"
+split = s => {
+    list = []
+    for char in s {
+        list.append(char)
+    }
+    list
+}
+
+assert(split(name)[0], "A")

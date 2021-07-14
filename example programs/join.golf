@@ -1,0 +1,14 @@
+text = ["H", "i", "!", 1, 2, 3]
+join = (l, char) => {
+    joined = ""
+    for i = 0; i < len(l); i = i + 1 {
+        joined = if i == len(l) - 1 {
+            joined + str(l[i])
+        } else {
+            joined + str(l[i]) + char
+        }
+    }
+    joined
+}
+
+assert(join(text, " ")[6], "1")
