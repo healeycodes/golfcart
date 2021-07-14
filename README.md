@@ -160,7 +160,7 @@ Ultimately, I've learned a lot and this won't be my last language!
 
 ## Implementation
 
-Golfcart is a tree-walk interpreter. Its one dependancy is the [Participle](https://github.com/alecthomas/participle) parsing library, which consumes a parser grammer written using Go structs and a RegEx-like syntax to create a syntax tree (see [parser.go](https://github.com/healeycodes/golfcart/blob/main/pkg/golfcart/parse.go)). This library let me move fast and refactor parsing bugs without headaches.
+Golfcart is a tree-walk interpreter. Its one dependency is the [Participle](https://github.com/alecthomas/participle) parsing library, which consumes a parser grammer written using Go structs and a RegEx-like syntax to create a syntax tree (see [parser.go](https://github.com/healeycodes/golfcart/blob/main/pkg/golfcart/parse.go)). This library let me move fast and refactor parsing bugs without headaches.
 
 A piece of source code is turned into tokens by Participle's lexer. The lexer uses token definitions. For example, Golfcart's identifier defined as: ```{"Ident", `[\w]+`, nil}```). These tokens are parsed into a syntax tree using struct definitions.
 
