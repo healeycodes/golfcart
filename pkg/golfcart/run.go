@@ -6,6 +6,8 @@ import (
 	"os"
 )
 
+const VERSION = 0.1
+
 func RunProgram(source string, debug bool) (*string, error) {
 	ast, err := GenerateAST(source)
 	if err != nil {
