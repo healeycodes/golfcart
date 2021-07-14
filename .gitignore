@@ -1,4 +1,9 @@
-./golfcart
+# Releases
+./golfcart-linux
+./golfcart-windows
+./golfcart-darwin
+
+# I use this for local testing
 scratchpad.golf
 
 # Binaries for programs and plugins

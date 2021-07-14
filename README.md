@@ -216,6 +216,20 @@ Use `-ebnf` to print the Extended Backus–Naur form grammar to stdout and quit.
 
 Use `-version` to print the version to stdout and quit.
 
+## Building and tests
+
+Create releases.
+
+```bash
+./build.sh
+```
+
+Run all tests (they also run via GitHub Action on commit).
+
+```bash
+go test ./...
+```
+
 ## Contributions
 
 More than welcome! Raise an issue with a bug report/feature proposal and let's chat.
