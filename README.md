@@ -85,7 +85,7 @@ nil
 nil == nil // true
 ```
 
-The fibonacci sequence.
+The Fibonacci sequence.
 
 ```javascript
 // Naive
