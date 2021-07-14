@@ -2,6 +2,13 @@
 
 [![Go](https://github.com/healeycodes/golfcart/actions/workflows/go.yml/badge.svg)](https://github.com/healeycodes/golfcart/actions/workflows/go.yml)
 
+  * [Getting started](#getting-started)
+  * [Motivations](#motivations)
+  * [Implementation](#implementation)
+  * [Usage](#usage)
+  * [Contributions](#contributions)
+  * [License](#license)
+
 Golfcart is a minimal programming language inspired by Ink, JavaScript, and Python – implemented in Go.
 
 ```javascript
@@ -181,8 +188,35 @@ The Participle library provides line-numbers for each lexer token. These are add
 
 There are runtime functions (e.g. input/output, type assertions and casts, keys/values, etc.) in [runtime.go](https://github.com/healeycodes/golfcart/blob/main/pkg/golfcart/runtime.go) and the REPL can be found in [run.go](https://github.com/healeycodes/golfcart/blob/main/pkg/golfcart/run.go).
 
+## Usage
 
-## Contributions/issues
+Pass a Golfcart program as the first command-line argument
+
+```bash
+$ ./golfcart-linux program.golf
+```
+
+Run the binary with no command-line arguments to open the REPL.
+
+```bash
+$ ./golfcart-linux 
+
+      .-::":-.
+    .'''..''..'.
+   /..''..''..''\
+  ;'..''..''..''.;
+  ;'..''..''..'..;
+   \..''..''..''/
+    '.''..''...'
+      '-..::-' Golfcart v0.1
+λ 
+```
+
+Use `-ebnf` to print the Extended Backus–Naur form grammar to stdout and quit.
+
+Use `-version` to print the version to stdout and quit.
+
+## Contributions
 
 More than welcome! Raise an issue with a bug report/feature proposal and let's chat.
 
