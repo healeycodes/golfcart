@@ -12,7 +12,7 @@
 Golfcart is a minimal programming language inspired by Ink, JavaScript, and Python – implemented in Go. It's a toy programming language that I built to use for Advent of Code 2021. Another motivation was to learn how to write an interpreter from scratch.
 
 ```javascript
-// Here's the classic interview question, FizzBuzz
+// Here's the classic interview question FizzBuzz
 for i = 1; i < 101; i = i + 1 {
     log(if i % 3 == 0 and i % 5 == 0 {
        "FizzBuzz"
@@ -84,6 +84,7 @@ string"
 [1, 2]
 nums = [3, 4]
 nums.append(5) // [3, 4, 5]
+[0] + [1] // [0, 1]
 
 // Dicts
 {a: 1} // Accessed by `.a` or `["a"]` like JavaScript
