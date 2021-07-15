@@ -2,17 +2,17 @@
 
 [![Go](https://github.com/healeycodes/golfcart/actions/workflows/go.yml/badge.svg)](https://github.com/healeycodes/golfcart/actions/workflows/go.yml)
 
-  * [Getting started](#getting-started)
-  * [Motivations](#motivations)
-  * [Implementation](#implementation)
-  * [Usage](#usage)
-  * [Building and tests](#building-and-tests)
-  * [Contributions](#contributions)
-  * [License](#license)
+ * [Getting Started](#getting-started)
+ * [Scope Rules](#scope-rules)
+ * [Usage](#usage)
+ * [Building and tests](#building-and-tests)
+ * [Contributions](#contributions)
+ * [License](#license)
 
-Golfcart is a minimal programming language inspired by Ink, JavaScript, and Python – implemented in Go.
+Golfcart is a minimal programming language inspired by Ink, JavaScript, and Python – implemented in Go. It's a toy programming language that I built to use for Advent of Code 2021. Another motivation was to learn how to write an interpreter from scratch.
 
 ```javascript
+// Here's the classic interview question, FizzBuzz
 for i = 1; i < 101; i = i + 1 {
     log(if i % 3 == 0 and i % 5 == 0 {
        "FizzBuzz"
@@ -26,7 +26,7 @@ for i = 1; i < 101; i = i + 1 {
 }
 ```
 
-It's a dynamic strongly typed language with support for bools, strings, numbers (float64), lists, dicts, and nil (null). There is full support for closures and functions can alter any variable in a higher scope.
+Golfcart is a dynamic strongly typed language with support for bools, strings, numbers (float64), lists, dicts, and nil (null). There is full support for closures and functions can alter any variable in a higher scope.
 
 ```javascript
 counter = () => {
@@ -43,12 +43,25 @@ my_counter() // 1
 assert(my_counter(), 2)
 ```
 
-## Getting started
+For Golfcart, I began with a desire to design a small programming language that didn't use semi-colons or automatic semicolon insertion. So, no statements, and everything should be an expression that evaluates to a value. For example:
+- `if/else if/else` evaluates to the successful branch
+- A variable declaration evaluates to the value
+- Setting a dict value evaluates to the value
+- A for loop evaluates to the number of times the condition expression succeeded
+
+```javascript
+assert(
+    // This runs five times
+    for i = 0; i < 5; i = i + 1 {}, 5
+)
+```
+
+## Getting Started
 
 A Golfcart program is a series of expressions. Line breaks are optional and there are no semi-colons. The final expression is sent to stdout.
 
 ```javascript
-a = 1 b = 2 assert(a + b, 3)
+a = 1 b = 2 assert(a + b, 3) // A successful assert() evaluates to nil
 ```
 
 There are seven types. A type-check can be performed with `type()`.
@@ -74,6 +87,7 @@ nums.append(5) // [3, 4, 5]
 
 // Dicts
 {a: 1} // Accessed by `.a` or `["a"]` like JavaScript
+       // Values can be any type
 keys({a: 1}) // ["a"]
 
 // Functions
@@ -120,76 +134,31 @@ For more detailed examples, see:
 
 (All the above are used as part of Golfcart's test suite)
 
-## Motivations
+## Scope Rules
 
-This is a toy programming language that I built to use for Advent of Code 2021.
-
-Another motivation was to learn how to write an interpreter from scratch. Previously, I read Crafting Interpreters and [implemented the Lox programming language](https://github.com/healeycodes/hoot-language) using Python, and [partially ported Ink](https://github.com/healeycodes/quill) using Rust. Another introduction to interpreters I enjoyed was [A Frontend Programmer's Guide to Languages](https://thatjdanisso.cool/programming-languages). The [Ink blog](https://dotink.co/posts/) is also great.
-
-I wanted to design a small programming language that didn't use semi-colons or automatic semicolon insertion. So, no statements and everything should be an expression that evaluates to a value. For example:
-- `if/else if/else` evaluates to the successful branch
-- A variable declaration evaluates to the value
-- Setting a dict value evaluates to the value
-- A for loop evalutes to the number of times the condition expression succeeded
+Let's talk about stack frames in Golfcart. A stack frame is a map of variables in scope. It's a recursive structure, every stack frame has a parent apart from the global frame. All functions are anonymous and create closures. Any variable referenced in a higher scope can be altered. Examples explain this better than words.
 
 ```javascript
-assert(
-    for i = 0; i < 5; i = i + 1 {}, 5
-)
-```
+a = 1
+a_function = () => a = 2 // Closure created
+a_function() // When called, `a` is changed
+a // 2
 
-However, I didn't realise how restrictive this design goal was. A problem I ran into early was accessing an item from a literal.
-
-```javascript
-[1][0] // This evaluates to [0] because Golfcart thinks it's two lists
-
-// Instead, you do:
-a = [1]
-a[0]
-```
-
-While it's too late to add semi-colon separated statements to Golfcart, I have a new found appreciation for `;`.
-
-The main problem with Golfcart is that there are differences between how Golfcart programs run in my head vs. in the interpreter. This is because I jumped to implementing the language and didn't spend enough time designing. Linus Lee has some interesting notes on designing small interpreters in [Build your own programming language](https://thesephist.com/posts/pl/#impl).
-
-> In this phase, I usually keep a text document where I experiment with syntax by writing small programs in the new as-yet-nonexistent language. I write notes and questions for myself in comments in the code, and try to implement small algorithms and data structures like recursive mathematical functions, sorting algorithms, and small web servers.
-
-If I had more predefined programs to start with (to run as tests), I would have noticed the divergence of how programs are actually evaluated early enough to re-think the design. This project's example programs were written after the fact within the confines of the language's limitations.
-
-Ultimately, I've learned a lot and this won't be my last language!
-
-## Implementation
-
-Golfcart is a tree-walk interpreter. Its one dependency is the [Participle](https://github.com/alecthomas/participle) parsing library, which consumes a parser grammer written using Go structs and a RegEx-like syntax to create a syntax tree (see [parser.go](https://github.com/healeycodes/golfcart/blob/main/pkg/golfcart/parse.go)). This library let me move fast and refactor parsing bugs without headaches.
-
-A piece of source code is turned into tokens by Participle's lexer. The lexer uses token definitions. For example, Golfcart's identifier defined as: ```{"Ident", `[\w]+`, nil}```). These tokens are parsed into a syntax tree using struct definitions.
-
-Here's the list literal:
-
-```go
-type ListLiteral struct {
-	Pos lexer.Position
-
-	Expressions *[]Expression `"[" ( @@ ( "," @@ )* )? "]"`
+if true {
+    // `b` is not defined in a higher scope
+    // So, `b` is declared only within this scope
+    b = 3
 }
-```
+b // Error: cannot find value for key 'b'
 
-Once the source code has been built into the syntax tree, each node of this tree is walked — as in _tree-walk_ (see [eval.go](https://github.com/healeycodes/golfcart/blob/main/pkg/golfcart/eval.go)). The code architecture is similar to [Ink](https://github.com/thesephist/ink)'s — the way stack frames work is similar and I used a near-identical interface for values.
-
-```go
-type Value interface {
-	String() string
-	Equals(Value) bool, error
+c = nil
+if true {
+    // This assignment recursively looks in higher scopes for `c`
+    // it's found and that value is altered
+    c = 4
 }
+c // 4
 ```
-
-<br>
-
-Whenever I implemented a new type of value or syntax, I added a specification program with an assertion. When I came across a bug, I sometimes wrote an error program to purposefully throw an error. This project's tests `go test ./...` ensure that the specification programs and example programs run without any errors (an `assert()` call throws an error and quits) and that the error programs all error out.
-
-The Participle library provides line-numbers for each lexer token. These are added to the value structs during evaluation and so some Golfcart errors have line-numbers (all have error text, and hopefully enough information to find and fix). Golfcart lacks a mature stack trace.
-
-There are runtime functions (e.g. input/output, type assertions and casts, keys/values, etc.) in [runtime.go](https://github.com/healeycodes/golfcart/blob/main/pkg/golfcart/runtime.go) and the REPL can be found in [run.go](https://github.com/healeycodes/golfcart/blob/main/pkg/golfcart/run.go).
 
 ## Usage
 
