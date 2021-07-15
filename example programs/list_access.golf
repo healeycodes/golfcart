@@ -1,0 +1,8 @@
+[1][0] // This evaluates to [0] because Golfcart thinks it's two lists
+
+// Instead, you do:
+([1])[0]
+
+// Or
+a = [1]
+a[0]

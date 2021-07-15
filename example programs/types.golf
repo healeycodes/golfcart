@@ -1,0 +1,31 @@
+// Bools
+true or false
+true and true
+
+// Numbers
+1
+1.1 + 1.1 // 2.2
+
+// Strings
+"multi-line
+string"
+"1" + "2" // "12"
+
+// Lists
+[1, 2]
+nums = [3, 4]
+nums.append(5) // [3, 4, 5]
+
+// Dicts
+{a: 1} // Accessed by `.a` or `["a"]` like JavaScript
+       // Values can be any type
+keys({a: 1}) // ["a"]
+
+// Functions
+_ => nil // All user-defined functions are anonymous, assignable by variable
+n => n + 1
+sum = (x, y) => x + y
+
+// Nil
+nil
+nil == nil // true

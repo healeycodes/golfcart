@@ -1,0 +1,19 @@
+a = 1
+a_function = () => a = 2 // Closure created
+a_function() // When called, `a` is changed
+assert(a, 2)
+
+if true {
+    // `b` is not defined in a higher scope
+    // So, `b` is declared only within this scope
+    b = 3
+}
+// using `b` here would result in an error, "cannot find value for key 'b'"
+
+c = nil
+if true {
+    // Recursively looks in higher scopes for `c`
+    // and finds it, so that value is altered
+    c = 4
+}
+assert(c, 4)
