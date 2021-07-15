@@ -88,7 +88,7 @@ nums.append(5) // [3, 4, 5]
 
 // Dicts
 {a: 1} // Accessed by `.a` or `["a"]` like JavaScript
-       // Values can be any type
+{b: n => n + 1} // Values can be any type
 keys({a: 1}) // ["a"]
 
 // Functions
@@ -210,4 +210,3 @@ More than welcome! Raise an issue with a bug report/feature proposal and let's c
 ## License
 
 MIT.
-
