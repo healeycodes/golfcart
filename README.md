@@ -1,6 +1,10 @@
+[![Go](https://github.com/healeycodes/golfcart/actions/workflows/go.yml/badge.svg)](https://github.com/healeycodes/golfcart/actions/workflows/go.yml)
+
 # ⛳ Golfcart
 
-[![Go](https://github.com/healeycodes/golfcart/actions/workflows/go.yml/badge.svg)](https://github.com/healeycodes/golfcart/actions/workflows/go.yml)
+> My blog post: [Creating the Golfcart Programming Language](https://healeycodes.com/creating-the-golfcart-programming-language/)
+
+<br>
 
  * [Getting Started](#getting-started)
  * [Scope Rules](#scope-rules)
