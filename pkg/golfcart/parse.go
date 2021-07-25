@@ -6,224 +6,266 @@ import (
 	"github.com/alecthomas/participle/v2/lexer/stateful"
 )
 
-type ExpressionList struct {
+type Program struct {
 	Pos lexer.Position
 
-	Expressions []*Expression `@@*`
+	Declaration []*Declaration `@@*`
+}
+
+type Declaration struct {
+	Pos lexer.Position
+
+	VarDeclaration []*VarDeclaration `@@`
+	Statement      []*Statement      `| @@`
+}
+
+type VarDeclaration struct {
+	Pos lexer.Position
+
+	Identifier *string     `@Ident`
+	Expression *Expression `( ":" "=" @@ )?`
+	_          *string     `";"`
+}
+
+type Statement struct {
+	Pos lexer.Position
+
+	IfStatement *IfStatement `@@`
+}
+
+type IfStatement struct {
+	Pos lexer.Position
+
+	Condition *Expression  `"if" @@`
+	Body      *Statement   `@@`
+	Else      *string      `( "else"`
+	ElseBody  []*Statement `@@ )?`
 }
 
 type Expression struct {
 	Pos lexer.Position
 
-	Assignment          *Assignment `@@`
-	NativeFunctionValue *NativeFunctionValue
+	IfStatement *IfStatement `@@`
 }
 
-type Assignment struct {
-	Pos lexer.Position
+// type ExpressionList struct {
+// 	Pos lexer.Position
 
-	LogicAnd *LogicAnd `@@`
-	Op       string    `( @"="`
-	Next     *LogicAnd `  @@ )?`
-}
+// 	Expressions []*Expression `@@*`
+// }
 
-type LogicAnd struct {
-	Pos lexer.Position
+// type Expression struct {
+// 	Pos lexer.Position
 
-	LogicOr *LogicOr  `@@`
-	Op      string    `( @( "and" )`
-	Next    *LogicAnd `  @@ )?`
-}
+// 	Assignment          *Assignment `@@`
+// 	NativeFunctionValue *NativeFunctionValue
+// }
 
-type LogicOr struct {
-	Pos lexer.Position
+// type Assignment struct {
+// 	Pos lexer.Position
 
-	Equality *Equality `@@`
-	Op       string    `( @( "or" )`
-	Next     *LogicOr  `  @@ )?`
-}
+// 	LogicAnd *LogicAnd `@@`
+// 	Op       string    `( @"="`
+// 	Next     *LogicAnd `  @@ )?`
+// }
 
-type Equality struct {
-	Pos lexer.Position
+// type LogicAnd struct {
+// 	Pos lexer.Position
 
-	Comparison *Comparison `@@`
-	Op         string      `( @( "!" "=" | "=" "=" )`
-	Next       *Equality   `  @@ )?`
-}
+// 	LogicOr *LogicOr  `@@`
+// 	Op      string    `( @( "and" )`
+// 	Next    *LogicAnd `  @@ )?`
+// }
 
-type Comparison struct {
-	Pos lexer.Position
+// type LogicOr struct {
+// 	Pos lexer.Position
 
-	Addition *Addition   `@@`
-	Op       string      `( @( ">" "=" | ">" | "<" "=" | "<" )`
-	Next     *Comparison `  @@ )?`
-}
+// 	Equality *Equality `@@`
+// 	Op       string    `( @( "or" )`
+// 	Next     *LogicOr  `  @@ )?`
+// }
 
-type Addition struct {
-	Pos lexer.Position
+// type Equality struct {
+// 	Pos lexer.Position
 
-	Multiplication *Multiplication `@@`
-	Op             string          `( @( "-" | "+" )`
-	Next           *Addition       `  @@ )?`
-}
+// 	Comparison *Comparison `@@`
+// 	Op         string      `( @( "!" "=" | "=" "=" )`
+// 	Next       *Equality   `  @@ )?`
+// }
 
-type Multiplication struct {
-	Pos lexer.Position
+// type Comparison struct {
+// 	Pos lexer.Position
 
-	Unary *Unary          `@@`
-	Op    string          `( @( "/" | "*" | "%")`
-	Next  *Multiplication `  @@ )?`
-}
+// 	Addition *Addition   `@@`
+// 	Op       string      `( @( ">" "=" | ">" | "<" "=" | "<" )`
+// 	Next     *Comparison `  @@ )?`
+// }
 
-type Unary struct {
-	Pos lexer.Position
+// type Addition struct {
+// 	Pos lexer.Position
 
-	Op      string   `( @( "!" | "-" )`
-	Unary   *Unary   `  @@ )`
-	Primary *Primary `| @@`
-}
+// 	Multiplication *Multiplication `@@`
+// 	Op             string          `( @( "-" | "+" )`
+// 	Next           *Addition       `  @@ )?`
+// }
 
-type Primary struct {
-	Pos lexer.Position
+// type Multiplication struct {
+// 	Pos lexer.Position
 
-	If            *If          `@@`
-	DataLiteral   *DataLiteral `| @@`
-	SubExpression *Expression  `| "(" @@ ")"`
-	Call          *Call        `| @@`
-	// TODO: `for {}` is a parser error
-	ForKeyValue *ForKeyValue `| @@`
-	ForValue    *ForValue    `| @@`
-	For         *For         `| @@`
-	ForWhile    *ForWhile    `| @@`
-	Return      *Return      `| @@`
-	Break       *Break       `| @@`
-	Continue    *Continue    `| @@`
-	Number      *float64     `| @Float | @Int`
-	Str         *string      `| @String`
-	True        *bool        `| @"true"`
-	False       *bool        `| @"false"`
-	Nil         *bool        `| @"nil"`
-	Ident       *string      `| @Ident`
-}
+// 	Unary *Unary          `@@`
+// 	Op    string          `( @( "/" | "*" | "%")`
+// 	Next  *Multiplication `  @@ )?`
+// }
 
-type DataLiteral struct {
-	FunctionLiteral *FunctionLiteral `@@`
-	ListLiteral     *ListLiteral     `| @@`
-	DictLiteral     *DictLiteral     `| @@`
-}
+// type Unary struct {
+// 	Pos lexer.Position
 
-type If struct {
-	Pos lexer.Position
+// 	Op      string   `( @( "!" | "-" )`
+// 	Unary   *Unary   `  @@ )`
+// 	Primary *Primary `| @@`
+// }
 
-	Condition *Expression   `"if" @@`
-	IfBody    []*Expression `"{" @@* "}"`
-	ElseIf    *ElseIf       `@@*`
-	ElseBody  []*Expression `( "else" "{" @@* "}" )?`
-}
+// type Primary struct {
+// 	Pos lexer.Position
 
-type ElseIf struct {
-	Condition *Expression   `"else" "if" @@`
-	IfBody    []*Expression `"{" @@* "}"`
-	Next      *ElseIf       `@@*`
-}
+// 	If            *If          `@@`
+// 	DataLiteral   *DataLiteral `| @@`
+// 	SubExpression *Expression  `| "(" @@ ")"`
+// 	Call          *Call        `| @@`
+// 	// TODO: `for {}` is a parser error
+// 	ForKeyValue *ForKeyValue `| @@`
+// 	ForValue    *ForValue    `| @@`
+// 	For         *For         `| @@`
+// 	ForWhile    *ForWhile    `| @@`
+// 	Return      *Return      `| @@`
+// 	Break       *Break       `| @@`
+// 	Continue    *Continue    `| @@`
+// 	Number      *float64     `| @Float | @Int`
+// 	Str         *string      `| @String`
+// 	True        *bool        `| @"true"`
+// 	False       *bool        `| @"false"`
+// 	Nil         *bool        `| @"nil"`
+// 	Ident       *string      `| @Ident`
+// }
 
-type FunctionLiteral struct {
-	Pos lexer.Position
+// type DataLiteral struct {
+// 	FunctionLiteral *FunctionLiteral `@@`
+// 	ListLiteral     *ListLiteral     `| @@`
+// 	DictLiteral     *DictLiteral     `| @@`
+// }
 
-	Parameters []string      `( "(" ( @Ident ( "," @Ident )* )? ")" | @Ident )`
-	Body       []*Expression `"=" ">" ( "{" @@* "}" | @@ )`
-}
+// type If struct {
+// 	Pos lexer.Position
 
-type ListLiteral struct {
-	Pos lexer.Position
+// 	Condition *Expression   `"if" @@`
+// 	IfBody    []*Expression `"{" @@* "}"`
+// 	ElseIf    *ElseIf       `@@*`
+// 	ElseBody  []*Expression `( "else" "{" @@* "}" )?`
+// }
 
-	Expressions *[]Expression `"[" ( @@ ( "," @@ )* )? "]"`
-}
+// type ElseIf struct {
+// 	Condition *Expression   `"else" "if" @@`
+// 	IfBody    []*Expression `"{" @@* "}"`
+// 	Next      *ElseIf       `@@*`
+// }
 
-type DictLiteral struct {
-	Pos lexer.Position
+// type FunctionLiteral struct {
+// 	Pos lexer.Position
 
-	DictEntry *[]DictEntry `"{" ( @@ ("," @@)* ","? )? "}"`
-}
+// 	Parameters []string      `( "(" ( @Ident ( "," @Ident )* )? ")" | @Ident )`
+// 	Body       []*Expression `"=" ">" ( "{" @@* "}" | @@ )`
+// }
 
-type DictEntry struct {
-	Pos lexer.Position
+// type ListLiteral struct {
+// 	Pos lexer.Position
 
-	Ident *string     `( @Ident`
-	Key   *Expression `| @@ ) ":" `
-	Value *Expression `@@`
-}
+// 	Expressions *[]Expression `"[" ( @@ ( "," @@ )* )? "]"`
+// }
 
-type Call struct {
-	Pos lexer.Position
+// type DictLiteral struct {
+// 	Pos lexer.Position
 
-	Ident         *string     `( @Ident`
-	SubExpression *Expression `| "(" @@ ")" )`
-	CallChain     *CallChain  `@@`
-}
+// 	DictEntry *[]DictEntry `"{" ( @@ ("," @@)* ","? )? "}"`
+// }
 
-type CallChain struct {
-	Parameters     *[]Expression `( "(" ( @@ ( "," @@ )* )? ")" `
-	Access         *string       `    | "." @Ident`
-	ComputedAccess *Expression   `    | "[" @@ "]" )`
-	Next           *CallChain    `@@?`
-}
+// type DictEntry struct {
+// 	Pos lexer.Position
 
-type Break struct {
-	Pos lexer.Position
+// 	Ident *string     `( @Ident`
+// 	Key   *Expression `| @@ ) ":" `
+// 	Value *Expression `@@`
+// }
 
-	Break *string `"break"`
-}
+// type Call struct {
+// 	Pos lexer.Position
 
-type Continue struct {
-	Pos lexer.Position
+// 	Ident         *string     `( @Ident`
+// 	SubExpression *Expression `| "(" @@ ")" )`
+// 	CallChain     *CallChain  `@@`
+// }
 
-	Continue *string `"continue"`
-}
+// type CallChain struct {
+// 	Parameters     *[]Expression `( "(" ( @@ ( "," @@ )* )? ")" `
+// 	Access         *string       `    | "." @Ident`
+// 	ComputedAccess *Expression   `    | "[" @@ "]" )`
+// 	Next           *CallChain    `@@?`
+// }
 
-type Return struct {
-	Pos lexer.Position
+// type Break struct {
+// 	Pos lexer.Position
 
-	Return     *string     `( "return" `
-	Expression *Expression `@@ )`
-}
+// 	Break *string `"break"`
+// }
 
-type For struct {
-	Pos lexer.Position
+// type Continue struct {
+// 	Pos lexer.Position
 
-	Init      []*Assignment `"for" ( @@ ";"`
-	Condition *Expression   `@@ ";"`
-	Post      *Expression   `@@`
-	Body      []*Expression `"{" @@* "}" )`
-}
+// 	Continue *string `"continue"`
+// }
 
-type ForValue struct {
-	Pos lexer.Position
+// type Return struct {
+// 	Pos lexer.Position
 
-	Value                *string       `( "for" @Ident "in"`
-	Collection           *string       `( @Ident`
-	CollectionExpression *Expression   `| @@) `
-	Body                 []*Expression `"{" @@* "}" )`
-}
+// 	Return     *string     `( "return" `
+// 	Expression *Expression `@@ )`
+// }
 
-type ForKeyValue struct {
-	Pos lexer.Position
+// type For struct {
+// 	Pos lexer.Position
 
-	Key                  *string       `( "for" @Ident ","`
-	Value                *string       `@Ident "in"`
-	Collection           *string       `( @Ident`
-	CollectionExpression *Expression   `| @@) `
-	Body                 []*Expression `"{" @@* "}" )`
-}
+// 	Init      []*Assignment `"for" ( @@ ";"`
+// 	Condition *Expression   `@@ ";"`
+// 	Post      *Expression   `@@`
+// 	Body      []*Expression `"{" @@* "}" )`
+// }
 
-type ForWhile struct {
-	Pos lexer.Position
+// type ForValue struct {
+// 	Pos lexer.Position
 
-	Init      []*Assignment `"for" (`
-	Condition *Expression   `@@?`
-	Post      *Expression   ``
-	Body      []*Expression `"{" @@* "}" )`
-}
+// 	Value                *string       `( "for" @Ident "in"`
+// 	Collection           *string       `( @Ident`
+// 	CollectionExpression *Expression   `| @@) `
+// 	Body                 []*Expression `"{" @@* "}" )`
+// }
+
+// type ForKeyValue struct {
+// 	Pos lexer.Position
+
+// 	Key                  *string       `( "for" @Ident ","`
+// 	Value                *string       `@Ident "in"`
+// 	Collection           *string       `( @Ident`
+// 	CollectionExpression *Expression   `| @@) `
+// 	Body                 []*Expression `"{" @@* "}" )`
+// }
+
+// type ForWhile struct {
+// 	Pos lexer.Position
+
+// 	Init      []*Assignment `"for" (`
+// 	Condition *Expression   `@@?`
+// 	Post      *Expression   ``
+// 	Body      []*Expression `"{" @@* "}" )`
+// }
 
 var (
 	_lexer = lexer.Must(stateful.New(stateful.Rules{
@@ -232,12 +274,12 @@ var (
 			{"whitespace", `[\n\r\t ]+`, nil},
 			{"Float", `[+-]?([0-9]*[.])?[0-9]+`, nil},
 			{"Int", `[\d]+`, nil},
-			{"String", `"([^"]*)"`, nil},
+			{"String", `"([^"]*)"|'([^']*)`, nil},
 			{"Ident", `[\w]+`, nil},
 			{"Punct", `[-[!*%()+_={}\|:;"<,>./]|]`, nil},
 		},
 	}))
-	parser = participle.MustBuild(&ExpressionList{}, participle.Lexer(_lexer),
+	parser = participle.MustBuild(&Declaration{}, participle.Lexer(_lexer),
 		participle.Elide("whitespace", "comment"), participle.UseLookahead(2))
 )
 
@@ -245,13 +287,13 @@ func GetGrammer() string {
 	return parser.String()
 }
 
-func GenerateAST(source string) (*ExpressionList, error) {
-	expressionList := &ExpressionList{}
+func GenerateAST(source string) (*Declarations, error) {
+	declarations := &Declarations{}
 
-	err := parser.ParseString("", source, expressionList)
+	err := parser.ParseString("", source, declarations)
 	if err != nil {
 		return nil, err
 	}
 
-	return expressionList, nil
+	return declarations, nil
 }
