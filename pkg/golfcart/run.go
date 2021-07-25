@@ -8,10 +8,15 @@ import (
 
 const VERSION = 0.1
 
-func RunProgram(source string, debug bool) (*string, error) {
+func RunProgram(source string, config Config) (*string, error) {
 	ast, err := GenerateAST(source)
 	if err != nil {
 		return nil, err
+	}
+
+	if config.AST {
+		fmt.Println(ast)
+		return nil, nil
 	}
 
 	context := Context{}
@@ -23,7 +28,7 @@ func RunProgram(source string, debug bool) (*string, error) {
 		return nil, err
 	}
 
-	if debug {
+	if config.Debug {
 		fmt.Println(context.stackFrame.String())
 	}
 
@@ -69,4 +74,9 @@ func endlessREPL(context *Context) {
 		}
 		fmt.Println(result)
 	}
+}
+
+type Config struct {
+	Debug bool
+	AST   bool
 }

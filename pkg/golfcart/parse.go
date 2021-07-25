@@ -15,15 +15,16 @@ type Program struct {
 type Declaration struct {
 	Pos lexer.Position
 
-	VarDeclaration []*VarDeclaration `@@`
-	Statement      []*Statement      `| @@`
+	VarDeclaration *VarDeclaration `@@`
+	Statement      *Statement      `| @@`
 }
 
 type VarDeclaration struct {
 	Pos lexer.Position
 
 	Identifier *string     `@Ident`
-	Expression *Expression `( ":" "=" @@ )?`
+	New        *string     `( ( ":" )?`
+	Expression *Expression `( "=" @@ ) )?`
 	_          *string     `";"`
 }
 
@@ -45,7 +46,20 @@ type IfStatement struct {
 type Expression struct {
 	Pos lexer.Position
 
-	IfStatement *IfStatement `@@`
+	Assignment *Assignment `@@`
+}
+
+type Assignment struct {
+	Pos lexer.Position
+
+	Call            *Call       `( @@ "." )?`
+	Identifier      *string     `@Ident`
+	New             *string     `( ":" )?`
+	InnerAssignment *Assignment `"=" @@`
+	// LogicOr         LogicOr    `| @@`
+}
+
+type Call struct {
 }
 
 // type ExpressionList struct {
